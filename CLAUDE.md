@@ -7,17 +7,19 @@ Design doc: `docs/plans/2026-01-17-claude-dash-design.md`
 
 ## Agent Workflow (READ THIS FIRST)
 
-If you are an agent starting a fresh session:
+Every loop iteration (fresh context):
 
-1. Check "Current State" below for which iteration to work on
-2. Read the design doc for that iteration's spec
-3. Run `pytest tests/ -v` to verify previous work
-4. Implement the iteration (follow spec exactly)
-5. Write/update tests
-6. Commit with conventional commit format
-7. Update "Current State" below and commit
-
-**IMPORTANT:** One iteration per session. Update state before ending.
+1. Read this CLAUDE.md → find current iteration
+2. Read design doc → get iteration spec
+3. Run `pytest tests/ -v` → verify previous work passes
+4. If tests fail → fix first, don't start new iteration
+5. Implement current iteration (follow spec exactly)
+6. Write/update tests
+7. Run `pytest tests/ -v` → must pass
+8. Commit with conventional commit format
+9. Update "Current State" below → increment iteration
+10. Commit the state update
+11. **If current iteration was 8** → output: `<promise>ALL_ITERATIONS_COMPLETE</promise>`
 
 ## Quick Commands
 
@@ -44,12 +46,21 @@ After any code change:
 
 ## Current State
 
-**Completed iterations:** 0, 1
-**Current iteration:** 2
+| Iteration | Name | Status |
+|-----------|------|--------|
+| 0 | Skeleton + TDD | ✓ |
+| 1 | Active Sessions | ✓ |
+| 2 | Stats & Trends | **CURRENT** |
+| 3 | Tool Breakdown | pending |
+| 4 | Tab Infrastructure | pending |
+| 5 | Plugins Tab | pending |
+| 6 | MCP Servers Tab | pending |
+| 7 | Skills Tab | pending |
+| 8 | Agents Tab | pending |
+
 **Blocking issues:** None
 
 ### What's Working
-
 - Basic Textual app skeleton
 - Status bar with app name and active session count
 - Quit with `q`
@@ -60,12 +71,6 @@ After any code change:
 - Active sessions panel with project name, prompt preview
 - Current tool indicator for active sessions
 - Auto-refresh every 5 seconds
-
-### Next Session Starting Point
-
-1. Read design doc: `docs/plans/2026-01-17-claude-dash-design.md`
-2. Implement Iteration 2: Overview - Stats & Trends
-3. Update this section when done
 
 ## Conventions
 
@@ -91,6 +96,15 @@ Before marking iteration complete:
 - [ ] CLAUDE.md "Current State" updated
 - [ ] CHANGELOG.md updated with new version and changes
 - [ ] State update committed
+
+## Ralph Loop Completion
+
+When iteration 8 is complete and committed:
+1. Verify all tests pass
+2. Verify CLAUDE.md shows iteration 8 as ✓
+3. Output exactly: `<promise>ALL_ITERATIONS_COMPLETE</promise>`
+
+This stops the ralph-loop. Do NOT output the promise until iteration 8 is truly done.
 
 ## Textual Learnings
 
