@@ -70,7 +70,8 @@ After any code change:
 ## Conventions
 
 - Semantic Versioning (start at 0.1.0)
-- Conventional Commits required
+- Conventional Commits required (also on per title)
+- Coco style branch naming: 'feat/feature-name' or 'fix/bug-description' or 'docs/plan-name'
 - TDD: write test first when possible
 - Keep changes small and focused
 - Commit format:
@@ -88,6 +89,7 @@ Before marking iteration complete:
 - [ ] `pytest tests/ -v` passes
 - [ ] Committed with conventional commit
 - [ ] CLAUDE.md "Current State" updated
+- [ ] CHANGELOG.md updated with new version and changes
 - [ ] State update committed
 
 ## Textual Learnings
