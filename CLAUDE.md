@@ -51,8 +51,8 @@ After any code change:
 | 0 | Skeleton + TDD | ✓ |
 | 1 | Active Sessions | ✓ |
 | 2 | Stats & Trends | ✓ |
-| 3 | Tool Breakdown | **CURRENT** |
-| 4 | Tab Infrastructure | pending |
+| 3 | Tool Breakdown | ✓ |
+| 4 | Tab Infrastructure | **CURRENT** |
 | 5 | Plugins Tab | pending |
 | 6 | MCP Servers Tab | pending |
 | 7 | Skills Tab | pending |
@@ -74,6 +74,7 @@ After any code change:
 - Today's message/tool counts in status bar
 - Weekly trend sparkline
 - Projects ranked by recent activity
+- Tool breakdown with horizontal bar charts
 
 ## Conventions
 

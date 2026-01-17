@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-01-17
+
+### Added
+
+- Tool breakdown panel showing top 6 tools used today
+- Horizontal bar chart visualization for tool usage
+- Parse tool_use entries from session JSONL files
+
 ## [0.3.0] - 2026-01-17
 
 ### Added
