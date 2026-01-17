@@ -1,5 +1,6 @@
 """GitHub Actions data fetching and parsing."""
 
+import base64
 import json
 import subprocess
 from dataclasses import dataclass
@@ -116,3 +117,55 @@ def calculate_repo_stats(
         last_run=last_run,
         is_hidden=repo in hidden_repos,
     )
+
+
+def discover_claude_repos() -> list[str]:
+    """Discover repos that use claude-code-action.
+
+    Scans all accessible repos for workflows containing claude-code-action.
+    """
+    repos = gh_api("/user/repos?per_page=100")
+    if not repos:
+        return []
+
+    claude_repos = []
+
+    for repo_data in repos:
+        repo = repo_data.get("full_name", "")
+        if not repo:
+            continue
+
+        if _repo_has_claude_action(repo):
+            claude_repos.append(repo)
+
+    return sorted(claude_repos)
+
+
+def _repo_has_claude_action(repo: str) -> bool:
+    """Check if a repo has any workflow using claude-code-action."""
+    workflows = gh_api(f"/repos/{repo}/actions/workflows")
+    if not workflows:
+        return False
+
+    for wf in workflows.get("workflows", []):
+        path = wf.get("path", "")
+        if not path:
+            continue
+
+        # Fetch workflow file content
+        content_data = gh_api(f"/repos/{repo}/contents/{path}")
+        if not content_data:
+            continue
+
+        # Decode base64 content
+        try:
+            content_b64 = content_data.get("content", "")
+            content = base64.b64decode(content_b64).decode("utf-8")
+        except Exception:
+            continue
+
+        # Check for claude-code-action
+        if "claude-code-action" in content or "anthropics/claude-code" in content:
+            return True
+
+    return False
