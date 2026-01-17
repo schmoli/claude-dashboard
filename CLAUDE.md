@@ -44,22 +44,27 @@ After any code change:
 
 ## Current State
 
-**Completed iterations:** 0
-**Current iteration:** 1
+**Completed iterations:** 0, 1
+**Current iteration:** 2
 **Blocking issues:** None
 
 ### What's Working
 
 - Basic Textual app skeleton
-- Status bar with app name
+- Status bar with app name and active session count
 - Quit with `q`
 - pytest infrastructure
 - direnv auto-venv setup
+- Session data loading from ~/.claude/projects/
+- Active session detection (file mtime within 60s)
+- Active sessions panel with project name, prompt preview
+- Current tool indicator for active sessions
+- Auto-refresh every 5 seconds
 
 ### Next Session Starting Point
 
 1. Read design doc: `docs/plans/2026-01-17-claude-dash-design.md`
-2. Implement Iteration 1: Overview - Active Sessions
+2. Implement Iteration 2: Overview - Stats & Trends
 3. Update this section when done
 
 ## Conventions
