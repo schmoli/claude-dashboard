@@ -1,0 +1,92 @@
+"""GitHub Actions data fetching and parsing."""
+
+from dataclasses import dataclass
+from datetime import datetime, timezone, timedelta
+
+
+@dataclass
+class WorkflowRun:
+    """Represents a GitHub Actions workflow run."""
+
+    repo: str
+    run_id: int
+    workflow_name: str
+    status: str  # "queued", "in_progress", "completed"
+    conclusion: str | None  # "success", "failure", "cancelled", etc.
+    trigger: str  # "pull_request", "issue_comment", "push", etc.
+    pr_number: int | None
+    title: str
+    created_at: datetime
+    html_url: str
+
+    @property
+    def is_success(self) -> bool:
+        """Check if run was successful."""
+        return self.conclusion == "success"
+
+
+@dataclass
+class RepoStats:
+    """Aggregated statistics for a repository."""
+
+    repo: str
+    runs_today: int
+    runs_week: int
+    success_rate: float  # 0.0 - 1.0
+    last_run: WorkflowRun | None
+    is_hidden: bool
+
+
+def parse_workflow_run(repo: str, data: dict) -> WorkflowRun:
+    """Parse a workflow run from GitHub API response."""
+    pr_number = None
+    if data.get("pull_requests"):
+        pr_number = data["pull_requests"][0].get("number")
+
+    created_at = datetime.fromisoformat(data["created_at"].replace("Z", "+00:00"))
+
+    return WorkflowRun(
+        repo=repo,
+        run_id=data["id"],
+        workflow_name=data.get("name", ""),
+        status=data.get("status", ""),
+        conclusion=data.get("conclusion"),
+        trigger=data.get("event", ""),
+        pr_number=pr_number,
+        title=data.get("display_title", ""),
+        created_at=created_at,
+        html_url=data.get("html_url", ""),
+    )
+
+
+def calculate_repo_stats(
+    repo: str,
+    runs: list[WorkflowRun],
+    hidden_repos: list[str],
+) -> RepoStats:
+    """Calculate statistics for a repository from its runs."""
+    now = datetime.now(timezone.utc)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    week_ago = now - timedelta(days=7)
+
+    runs_today = [r for r in runs if r.created_at >= today_start]
+    runs_week = [r for r in runs if r.created_at >= week_ago]
+
+    # Calculate success rate from completed runs this week
+    completed = [r for r in runs_week if r.status == "completed" and r.conclusion]
+    if completed:
+        successes = sum(1 for r in completed if r.is_success)
+        success_rate = successes / len(completed)
+    else:
+        success_rate = 0.0
+
+    last_run = runs[0] if runs else None
+
+    return RepoStats(
+        repo=repo,
+        runs_today=len(runs_today),
+        runs_week=len(runs_week),
+        success_rate=success_rate,
+        last_run=last_run,
+        is_hidden=repo in hidden_repos,
+    )
