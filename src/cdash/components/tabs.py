@@ -4,6 +4,7 @@ from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.widgets import Static, TabbedContent, TabPane
 
+from cdash.components.plugins import PluginsTab
 from cdash.components.sessions import ActiveSessionsPanel
 from cdash.components.stats import StatsPanel
 from cdash.components.tools import ToolBreakdownPanel
@@ -87,7 +88,7 @@ class DashboardTabs(Vertical):
             with TabPane("Overview", id="tab-overview"):
                 yield OverviewTab()
             with TabPane("Plugins", id="tab-plugins"):
-                yield PlaceholderTab("Plugins tab - Coming in iteration 5")
+                yield PluginsTab()
             with TabPane("MCP Servers", id="tab-mcp"):
                 yield PlaceholderTab("MCP Servers tab - Coming in iteration 6")
             with TabPane("Skills", id="tab-skills"):

@@ -130,11 +130,10 @@ class TestPlaceholderTabs:
     """Tests for placeholder tabs."""
 
     @pytest.mark.asyncio
-    async def test_plugins_tab_has_placeholder(self):
-        """Plugins tab shows placeholder message."""
+    async def test_remaining_tabs_have_placeholders(self):
+        """MCP, Skills, and Agents tabs have placeholders."""
         app = ClaudeDashApp()
-        async with app.run_test() as pilot:
-            await pilot.press("2")
+        async with app.run_test():
             placeholders = app.query(PlaceholderTab)
-            # At least one placeholder should be visible
-            assert len(placeholders) >= 1
+            # 3 remaining placeholder tabs: MCP, Skills, Agents
+            assert len(placeholders) == 3
