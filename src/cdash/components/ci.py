@@ -2,11 +2,20 @@
 
 from datetime import datetime, timezone
 
+from textual import work
 from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.widgets import Static
+from textual.worker import Worker
 
-from cdash.data.github import RepoStats, WorkflowRun
+from cdash.data.github import (
+    RepoStats,
+    WorkflowRun,
+    discover_claude_repos,
+    fetch_workflow_runs,
+    calculate_repo_stats,
+)
+from cdash.data.settings import load_settings, save_settings, CdashSettings
 
 
 def format_relative_time(dt: datetime) -> str:
@@ -228,11 +237,23 @@ class CITab(Vertical):
         height: auto;
         max-height: 8;
     }
+
+    CITab > #loading-container {
+        height: 3;
+        align: center middle;
+    }
+
+    CITab > .status-msg {
+        color: $text-muted;
+        text-style: italic;
+        padding: 0 1;
+    }
     """
 
     BINDINGS = [
         ("h", "toggle_hidden", "Hide/Show repos"),
         ("r", "refresh", "Refresh"),
+        ("d", "discover", "Discover repos"),
     ]
 
     def __init__(self) -> None:
@@ -240,6 +261,8 @@ class CITab(Vertical):
         self._repo_stats: list[RepoStats] = []
         self._recent_runs: list[WorkflowRun] = []
         self._hidden_count = 0
+        self._loading = False
+        self._discovered = False
 
     def compose(self) -> ComposeResult:
         yield Static("GITHUB ACTIONS (Claude Code)", classes="ci-title")
@@ -251,15 +274,80 @@ class CITab(Vertical):
         yield Static("", classes="hidden-info", id="hidden-info")
         yield Static("RECENT RUNS", classes="runs-title")
         yield Vertical(id="runs-list")
+        yield Static("", classes="status-msg", id="status-msg")
 
     def on_mount(self) -> None:
         """Load data when mounted."""
-        self.refresh_data()
+        # Check if we have discovered repos
+        settings = load_settings()
+        if not settings.discovered_repos:
+            self._show_status("Discovering repos with claude-code-action...")
+            self._run_discovery()
+        else:
+            self._load_runs_for_repos(settings)
+
+    def _show_status(self, msg: str) -> None:
+        """Show a status message."""
+        try:
+            status = self.query_one("#status-msg", Static)
+            status.update(msg)
+        except Exception:
+            pass
+
+    @work(thread=True)
+    def _run_discovery(self) -> list[str]:
+        """Discover repos in background thread."""
+        repos = discover_claude_repos()
+        if repos:
+            settings = CdashSettings(discovered_repos=repos)
+            save_settings(settings)
+        return repos
+
+    def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
+        """Handle worker completion."""
+        if event.worker.name == "_run_discovery" and event.worker.is_finished:
+            repos = event.worker.result
+            if repos:
+                self._show_status(f"Found {len(repos)} repos. Loading runs...")
+                settings = load_settings()
+                self._load_runs_for_repos(settings)
+            else:
+                self._show_status("No repos found with claude-code-action")
+        elif event.worker.name == "_fetch_all_runs" and event.worker.is_finished:
+            self._show_status("")
+            self._refresh_display()
+
+    @work(thread=True)
+    def _fetch_all_runs(self, repos: list[str], hidden: list[str]) -> None:
+        """Fetch runs for all repos in background."""
+        all_runs = []
+        repo_stats = []
+        for repo in repos:
+            runs = fetch_workflow_runs(repo, days=7)
+            all_runs.extend(runs)
+            stats = calculate_repo_stats(repo, runs, hidden)
+            repo_stats.append(stats)
+        # Sort runs by date
+        all_runs.sort(key=lambda r: r.created_at, reverse=True)
+        self._repo_stats = repo_stats
+        self._recent_runs = all_runs
+        self._hidden_count = sum(1 for s in repo_stats if s.is_hidden)
+
+    def _load_runs_for_repos(self, settings: CdashSettings) -> None:
+        """Start loading runs for discovered repos."""
+        self._fetch_all_runs(settings.discovered_repos, settings.hidden_repos)
 
     def refresh_data(self) -> None:
         """Refresh CI data from GitHub."""
-        # This will be called by the app's refresh loop
-        pass
+        settings = load_settings()
+        if settings.discovered_repos:
+            self._show_status("Refreshing...")
+            self._load_runs_for_repos(settings)
+
+    def action_discover(self) -> None:
+        """Re-run repo discovery."""
+        self._show_status("Discovering repos...")
+        self._run_discovery()
 
     def update_data(
         self,
