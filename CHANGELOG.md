@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-01-17
+
+### Added
+
+- Today's message/tool counts in status bar
+- Weekly trend sparkline visualization
+- Projects ranked by recent activity (top 5)
+- Stats panel with trend and project widgets
+
+## [0.2.0] - 2026-01-17
+
+### Added
+
+- Active sessions panel with project name, prompt preview
+- Current tool indicator for active sessions
+- Session data loading from ~/.claude/projects/
+- Active session detection (file mtime within 60s)
+- Auto-refresh every 5 seconds
+
 ## [0.1.0] - 2026-01-17
 
 ### Added

@@ -50,8 +50,8 @@ After any code change:
 |-----------|------|--------|
 | 0 | Skeleton + TDD | ✓ |
 | 1 | Active Sessions | ✓ |
-| 2 | Stats & Trends | **CURRENT** |
-| 3 | Tool Breakdown | pending |
+| 2 | Stats & Trends | ✓ |
+| 3 | Tool Breakdown | **CURRENT** |
 | 4 | Tab Infrastructure | pending |
 | 5 | Plugins Tab | pending |
 | 6 | MCP Servers Tab | pending |
@@ -71,6 +71,9 @@ After any code change:
 - Active sessions panel with project name, prompt preview
 - Current tool indicator for active sessions
 - Auto-refresh every 5 seconds
+- Today's message/tool counts in status bar
+- Weekly trend sparkline
+- Projects ranked by recent activity
 
 ## Conventions
 
