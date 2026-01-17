@@ -4,7 +4,7 @@ from textual.app import App, ComposeResult
 from textual.widgets import Footer, Static
 
 from cdash.components.tabs import DashboardTabs, OverviewTab
-from cdash.data.github import fetch_workflow_runs, calculate_repo_stats
+from cdash.data.github import calculate_repo_stats, fetch_workflow_runs
 from cdash.data.sessions import get_active_sessions
 from cdash.data.settings import load_settings
 from cdash.data.stats import load_stats_cache

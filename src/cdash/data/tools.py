@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
-from cdash.data.sessions import get_projects_dir, list_projects
+from cdash.data.sessions import list_projects
 
 # Simple cache for tool usage
 _tool_cache: dict[str, "ToolUsage"] = {}

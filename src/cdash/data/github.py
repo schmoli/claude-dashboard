@@ -4,7 +4,7 @@ import base64
 import json
 import subprocess
 from dataclasses import dataclass
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 
 
 def gh_api(endpoint: str, method: str = "GET") -> dict | list | None:

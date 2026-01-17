@@ -4,7 +4,7 @@ from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.widgets import Static
 
-from cdash.data.agents import Agent, AgentSource, find_all_agents
+from cdash.data.agents import Agent, find_all_agents
 
 
 class AgentRow(Static):

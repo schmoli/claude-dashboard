@@ -11,11 +11,11 @@ from textual.worker import Worker
 from cdash.data.github import (
     RepoStats,
     WorkflowRun,
+    calculate_repo_stats,
     discover_claude_repos,
     fetch_workflow_runs,
-    calculate_repo_stats,
 )
-from cdash.data.settings import load_settings, save_settings, CdashSettings
+from cdash.data.settings import CdashSettings, load_settings, save_settings
 
 
 def format_relative_time(dt: datetime) -> str:
@@ -129,6 +129,10 @@ class CIActivityPanel(Vertical):
 class RepoRow(Static):
     """Single repository row in CI tab."""
 
+    # Fixed columns: TODAY(5) + WEEK(6) + SUCCESS(7) + LAST(12) + spacing(~10)
+    FIXED_WIDTH = 40
+    MIN_REPO_WIDTH = 20
+
     DEFAULT_CSS = """
     RepoRow {
         height: 1;
@@ -142,10 +146,17 @@ class RepoRow(Static):
 
     def render(self) -> str:
         s = self._stats
-        # Truncate repo name if needed
+
+        # Calculate available width for repo name
+        try:
+            available = self.size.width - self.FIXED_WIDTH
+            repo_width = max(self.MIN_REPO_WIDTH, available)
+        except Exception:
+            repo_width = 32  # fallback
+
         repo = s.repo
-        if len(repo) > 24:
-            repo = repo[:21] + "..."
+        if len(repo) > repo_width:
+            repo = repo[: repo_width - 3] + "..."
 
         # Format last run
         if s.last_run:
@@ -157,7 +168,7 @@ class RepoRow(Static):
 
         success_pct = f"{int(s.success_rate * 100)}%"
 
-        return f"{repo:<24} {s.runs_today:>5}  {s.runs_week:>6}  {success_pct:>7}   {last}"
+        return f"{repo:<{repo_width}} {s.runs_today:>5}  {s.runs_week:>6}  {success_pct:>7}   {last}"
 
 
 class RunRow(Static):
@@ -266,10 +277,7 @@ class CITab(Vertical):
 
     def compose(self) -> ComposeResult:
         yield Static("GITHUB ACTIONS (Claude Code)", classes="ci-title")
-        yield Static(
-            "REPO                     TODAY    WEEK  SUCCESS   LAST RUN",
-            classes="ci-header-row"
-        )
+        yield Static("", classes="ci-header-row", id="header-row")
         yield Vertical(id="repo-list")
         yield Static("", classes="hidden-info", id="hidden-info")
         yield Static("RECENT RUNS", classes="runs-title")
