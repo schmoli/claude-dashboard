@@ -54,8 +54,8 @@ After any code change:
 | 3 | Tool Breakdown | ✓ |
 | 4 | Tab Infrastructure | ✓ |
 | 5 | Plugins Tab | ✓ |
-| 6 | MCP Servers Tab | **CURRENT** |
-| 7 | Skills Tab | pending |
+| 6 | MCP Servers Tab | ✓ |
+| 7 | Skills Tab | **CURRENT** |
 | 8 | Agents Tab | pending |
 
 **Blocking issues:** None
@@ -78,6 +78,7 @@ After any code change:
 - Tab navigation with 1-5 keys
 - 5 tabs: Overview, Plugins, MCP Servers, Skills, Agents
 - Plugins tab with installed plugins list
+- MCP Servers tab with configured servers display
 
 ## Conventions
 
