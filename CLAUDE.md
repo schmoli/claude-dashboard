@@ -55,8 +55,8 @@ After any code change:
 | 4 | Tab Infrastructure | ✓ |
 | 5 | Plugins Tab | ✓ |
 | 6 | MCP Servers Tab | ✓ |
-| 7 | Skills Tab | **CURRENT** |
-| 8 | Agents Tab | pending |
+| 7 | Skills Tab | ✓ |
+| 8 | Agents Tab | **CURRENT** |
 
 **Blocking issues:** None
 
@@ -70,7 +70,7 @@ After any code change:
 - Active session detection (file mtime within 60s)
 - Active sessions panel with project name, prompt preview
 - Current tool indicator for active sessions
-- Auto-refresh every 5 seconds
+- Auto-refresh every 10 seconds
 - Today's message/tool counts in status bar
 - Weekly trend sparkline
 - Projects ranked by recent activity
@@ -79,6 +79,8 @@ After any code change:
 - 5 tabs: Overview, Plugins, MCP Servers, Skills, Agents
 - Plugins tab with installed plugins list
 - MCP Servers tab with configured servers display
+- Skills tab with skills grouped by plugin
+- Session/tool data caching for performance
 
 ## Conventions
 
