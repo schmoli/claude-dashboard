@@ -43,7 +43,7 @@ class OverviewTab(Vertical):
 
     DEFAULT_CSS = """
     OverviewTab {
-        height: 100%;
+        height: auto;
         padding: 0;
     }
     """
