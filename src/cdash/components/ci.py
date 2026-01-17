@@ -1,10 +1,27 @@
 """CI/GitHub Actions UI components."""
 
+from datetime import datetime, timezone
+
 from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.widgets import Static
 
-from cdash.data.github import RepoStats
+from cdash.data.github import RepoStats, WorkflowRun
+
+
+def format_relative_time(dt: datetime) -> str:
+    """Format datetime as relative time string."""
+    now = datetime.now(timezone.utc)
+    diff = now - dt
+
+    minutes = int(diff.total_seconds() / 60)
+    if minutes < 60:
+        return f"{minutes}m ago"
+    hours = minutes // 60
+    if hours < 24:
+        return f"{hours}h ago"
+    days = hours // 24
+    return f"{days}d ago"
 
 
 class CIActivityPanel(Vertical):
@@ -98,3 +115,205 @@ class CIActivityPanel(Vertical):
             f"{self._runs_today} runs {self._passed} passed {self._failed} failed "
             + " ".join(s.repo for s in self._top_repos)
         )
+
+
+class RepoRow(Static):
+    """Single repository row in CI tab."""
+
+    DEFAULT_CSS = """
+    RepoRow {
+        height: 1;
+        padding: 0 1;
+    }
+    """
+
+    def __init__(self, stats: RepoStats) -> None:
+        super().__init__()
+        self._stats = stats
+
+    def render(self) -> str:
+        s = self._stats
+        # Truncate repo name if needed
+        repo = s.repo
+        if len(repo) > 24:
+            repo = repo[:21] + "..."
+
+        # Format last run
+        if s.last_run:
+            last_time = format_relative_time(s.last_run.created_at)
+            last_status = "✓" if s.last_run.is_success else "✗"
+            last = f"{last_time} {last_status}"
+        else:
+            last = "-"
+
+        success_pct = f"{int(s.success_rate * 100)}%"
+
+        return f"{repo:<24} {s.runs_today:>5}  {s.runs_week:>6}  {success_pct:>7}   {last}"
+
+
+class RunRow(Static):
+    """Single workflow run row."""
+
+    DEFAULT_CSS = """
+    RunRow {
+        height: 1;
+        padding: 0 1;
+    }
+    """
+
+    def __init__(self, run: WorkflowRun) -> None:
+        super().__init__()
+        self._run = run
+
+    def render(self) -> str:
+        r = self._run
+        status = "[green]✓[/]" if r.is_success else "[red]✗[/]"
+
+        # Format trigger info
+        if r.pr_number:
+            trigger = f"PR #{r.pr_number}"
+        else:
+            trigger = r.trigger[:12]
+
+        # Truncate title
+        title = r.title
+        if len(title) > 25:
+            title = title[:22] + "..."
+
+        time = format_relative_time(r.created_at)
+
+        repo_short = r.repo.split("/")[-1]
+        return f'{status} {repo_short:<16} {trigger:<12} "{title}"  {time}'
+
+
+class CITab(Vertical):
+    """Dedicated CI tab with full repo breakdown."""
+
+    DEFAULT_CSS = """
+    CITab {
+        height: auto;
+        padding: 1;
+    }
+
+    CITab > .ci-title {
+        text-style: bold;
+        margin-bottom: 1;
+    }
+
+    CITab > .ci-header-row {
+        color: $text-muted;
+        padding: 0 1;
+        margin-bottom: 0;
+    }
+
+    CITab > #repo-list {
+        height: auto;
+        max-height: 10;
+        margin-bottom: 1;
+    }
+
+    CITab > .hidden-info {
+        color: $text-muted;
+        text-style: italic;
+        padding: 0 1;
+    }
+
+    CITab > .runs-title {
+        text-style: bold;
+        margin-top: 1;
+        margin-bottom: 1;
+    }
+
+    CITab > #runs-list {
+        height: auto;
+        max-height: 8;
+    }
+    """
+
+    BINDINGS = [
+        ("h", "toggle_hidden", "Hide/Show repos"),
+        ("r", "refresh", "Refresh"),
+    ]
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._repo_stats: list[RepoStats] = []
+        self._recent_runs: list[WorkflowRun] = []
+        self._hidden_count = 0
+
+    def compose(self) -> ComposeResult:
+        yield Static("GITHUB ACTIONS (Claude Code)", classes="ci-title")
+        yield Static(
+            "REPO                     TODAY    WEEK  SUCCESS   LAST RUN",
+            classes="ci-header-row"
+        )
+        yield Vertical(id="repo-list")
+        yield Static("", classes="hidden-info", id="hidden-info")
+        yield Static("RECENT RUNS", classes="runs-title")
+        yield Vertical(id="runs-list")
+
+    def on_mount(self) -> None:
+        """Load data when mounted."""
+        self.refresh_data()
+
+    def refresh_data(self) -> None:
+        """Refresh CI data from GitHub."""
+        # This will be called by the app's refresh loop
+        pass
+
+    def update_data(
+        self,
+        repo_stats: list[RepoStats],
+        recent_runs: list[WorkflowRun],
+    ) -> None:
+        """Update the display with new data."""
+        self._repo_stats = repo_stats
+        self._recent_runs = recent_runs
+        self._hidden_count = sum(1 for s in repo_stats if s.is_hidden)
+        self._refresh_display()
+
+    def _refresh_display(self) -> None:
+        """Refresh the UI."""
+        # Update repo list
+        try:
+            repo_list = self.query_one("#repo-list", Vertical)
+            repo_list.remove_children()
+
+            visible = [s for s in self._repo_stats if not s.is_hidden]
+            # Sort by runs_today desc, then runs_week desc
+            visible.sort(key=lambda s: (s.runs_today, s.runs_week), reverse=True)
+
+            for stats in visible:
+                repo_list.mount(RepoRow(stats))
+        except Exception:
+            pass
+
+        # Update hidden count
+        try:
+            hidden_info = self.query_one("#hidden-info", Static)
+            if self._hidden_count > 0:
+                hidden_info.update(
+                    f"── Hidden: {self._hidden_count} repos (press H to manage) ──"
+                )
+            else:
+                hidden_info.update("")
+        except Exception:
+            pass
+
+        # Update runs list
+        try:
+            runs_list = self.query_one("#runs-list", Vertical)
+            runs_list.remove_children()
+
+            for run in self._recent_runs[:8]:  # Show last 8 runs
+                runs_list.mount(RunRow(run))
+        except Exception:
+            pass
+
+    def action_toggle_hidden(self) -> None:
+        """Toggle hidden repos modal (future)."""
+        self.notify("Hidden repos management coming soon")
+
+    def action_refresh(self) -> None:
+        """Force refresh data."""
+        self.refresh_data()
