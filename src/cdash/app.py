@@ -6,6 +6,7 @@ from textual.widgets import Footer, Static
 
 from cdash.components.sessions import ActiveSessionsPanel
 from cdash.components.stats import StatsPanel
+from cdash.components.tools import ToolBreakdownPanel
 from cdash.data.sessions import get_active_sessions
 from cdash.data.stats import load_stats_cache
 
@@ -90,6 +91,7 @@ class ClaudeDashApp(App):
         yield Container(
             ActiveSessionsPanel(),
             StatsPanel(),
+            ToolBreakdownPanel(),
             id="main-content",
         )
         yield Footer()
@@ -124,6 +126,10 @@ class ClaudeDashApp(App):
         # Refresh the stats panel
         stats_panel = self.query_one(StatsPanel)
         stats_panel.refresh_stats()
+
+        # Refresh the tool breakdown panel
+        tools_panel = self.query_one(ToolBreakdownPanel)
+        tools_panel.refresh_tools()
 
     def action_quit(self) -> None:
         """Quit the application."""
