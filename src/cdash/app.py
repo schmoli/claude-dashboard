@@ -1,14 +1,32 @@
 """Main Textual application for Claude Dashboard."""
 
 from textual.app import App, ComposeResult
+from textual.containers import Container
 from textual.widgets import Footer, Static
+
+from cdash.components.sessions import ActiveSessionsPanel
+from cdash.data.sessions import get_active_sessions
 
 
 class StatusBar(Static):
     """Top status bar showing app name and summary stats."""
 
+    def __init__(self) -> None:
+        super().__init__()
+        self._active_count = 0
+
     def compose(self) -> ComposeResult:
         yield Static("claude-dash", id="app-name")
+        yield Static("", id="active-count")
+
+    def update_stats(self, active_count: int) -> None:
+        """Update the stats display."""
+        self._active_count = active_count
+        count_widget = self.query_one("#active-count", Static)
+        if active_count > 0:
+            count_widget.update(f"│ {active_count} active")
+        else:
+            count_widget.update("")
 
 
 class ClaudeDashApp(App):
@@ -22,10 +40,26 @@ class ClaudeDashApp(App):
         background: $primary;
         color: $text;
         padding: 0 1;
+        layout: horizontal;
     }
 
     #app-name {
         text-style: bold;
+        width: auto;
+    }
+
+    #active-count {
+        width: auto;
+        margin-left: 1;
+    }
+
+    #main-content {
+        padding: 1;
+    }
+
+    ActiveSessionsPanel {
+        height: auto;
+        max-height: 10;
     }
     """
 
@@ -33,9 +67,32 @@ class ClaudeDashApp(App):
         ("q", "quit", "Quit"),
     ]
 
+    # Refresh interval in seconds
+    REFRESH_INTERVAL = 5.0
+
     def compose(self) -> ComposeResult:
         yield StatusBar()
+        yield Container(
+            ActiveSessionsPanel(),
+            id="main-content",
+        )
         yield Footer()
+
+    def on_mount(self) -> None:
+        """Set up the refresh timer when the app mounts."""
+        self._refresh_data()
+        self.set_interval(self.REFRESH_INTERVAL, self._refresh_data)
+
+    def _refresh_data(self) -> None:
+        """Refresh all data displays."""
+        # Update active session count in status bar
+        active_sessions = get_active_sessions()
+        status_bar = self.query_one(StatusBar)
+        status_bar.update_stats(len(active_sessions))
+
+        # Refresh the sessions panel
+        sessions_panel = self.query_one(ActiveSessionsPanel)
+        sessions_panel.refresh_sessions()
 
     def action_quit(self) -> None:
         """Quit the application."""
