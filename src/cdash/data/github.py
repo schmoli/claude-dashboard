@@ -169,3 +169,33 @@ def _repo_has_claude_action(repo: str) -> bool:
             return True
 
     return False
+
+
+def fetch_workflow_runs(repo: str, days: int = 7) -> list[WorkflowRun]:
+    """Fetch recent workflow runs for a repository.
+
+    Args:
+        repo: Repository in "owner/repo" format
+        days: Number of days of history to fetch
+
+    Returns:
+        List of WorkflowRun objects, newest first.
+    """
+    since = datetime.now(timezone.utc) - timedelta(days=days)
+    since_str = since.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    data = gh_api(f"/repos/{repo}/actions/runs?per_page=50&created=>={since_str}")
+    if not data:
+        return []
+
+    runs = []
+    for run_data in data.get("workflow_runs", []):
+        try:
+            run = parse_workflow_run(repo, run_data)
+            runs.append(run)
+        except Exception:
+            continue
+
+    # Sort by created_at descending (newest first)
+    runs.sort(key=lambda r: r.created_at, reverse=True)
+    return runs

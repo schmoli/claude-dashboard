@@ -169,3 +169,49 @@ class TestDiscoverClaudeRepos:
 
         repos = discover_claude_repos()
         assert repos == []
+
+
+class TestFetchWorkflowRuns:
+    """Tests for fetching workflow runs."""
+
+    def test_fetches_runs_for_repo(self, monkeypatch):
+        """Fetches and parses workflow runs from API."""
+        from cdash.data.github import fetch_workflow_runs
+        import cdash.data.github as github_module
+
+        def mock_gh_api(endpoint, method="GET"):
+            return {
+                "workflow_runs": [
+                    {
+                        "id": 123,
+                        "name": "CI",
+                        "status": "completed",
+                        "conclusion": "success",
+                        "event": "push",
+                        "created_at": "2026-01-17T10:00:00Z",
+                        "html_url": "https://github.com/o/r/actions/runs/123",
+                        "display_title": "Update deps",
+                        "pull_requests": [],
+                    }
+                ]
+            }
+
+        monkeypatch.setattr(github_module, "gh_api", mock_gh_api)
+
+        runs = fetch_workflow_runs("owner/repo")
+        assert len(runs) == 1
+        assert runs[0].run_id == 123
+        assert runs[0].is_success
+
+    def test_returns_empty_on_api_error(self, monkeypatch):
+        """Returns empty list when API fails."""
+        from cdash.data.github import fetch_workflow_runs
+        import cdash.data.github as github_module
+
+        def mock_gh_api(endpoint, method="GET"):
+            return None
+
+        monkeypatch.setattr(github_module, "gh_api", mock_gh_api)
+
+        runs = fetch_workflow_runs("owner/repo")
+        assert runs == []
