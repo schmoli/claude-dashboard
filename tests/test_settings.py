@@ -10,6 +10,7 @@ from cdash.data.settings import (
     load_settings,
     save_settings,
     get_settings_path,
+    toggle_hidden_repo,
 )
 
 
@@ -54,3 +55,34 @@ class TestSaveSettings:
         data = json.loads(settings_path.read_text())
         assert data["github_actions"]["discovered_repos"] == ["owner/repo"]
         assert data["github_actions"]["hidden_repos"] == ["owner/hidden"]
+
+
+class TestToggleHiddenRepo:
+    """Tests for toggling repo hidden status."""
+
+    def test_hides_visible_repo(self, tmp_path: Path):
+        """Hiding a visible repo returns True and adds to hidden list."""
+        settings_path = tmp_path / "cdash-settings.json"
+        settings = CdashSettings(discovered_repos=["owner/repo"])
+        save_settings(settings, settings_path)
+
+        is_hidden = toggle_hidden_repo("owner/repo", settings_path)
+
+        assert is_hidden is True
+        loaded = load_settings(settings_path)
+        assert "owner/repo" in loaded.hidden_repos
+
+    def test_unhides_hidden_repo(self, tmp_path: Path):
+        """Unhiding a hidden repo returns False and removes from hidden list."""
+        settings_path = tmp_path / "cdash-settings.json"
+        settings = CdashSettings(
+            discovered_repos=["owner/repo"],
+            hidden_repos=["owner/repo"]
+        )
+        save_settings(settings, settings_path)
+
+        is_hidden = toggle_hidden_repo("owner/repo", settings_path)
+
+        assert is_hidden is False
+        loaded = load_settings(settings_path)
+        assert "owner/repo" not in loaded.hidden_repos

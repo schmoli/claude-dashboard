@@ -56,3 +56,16 @@ def save_settings(settings: CdashSettings, settings_path: Path | None = None) ->
     settings_path.parent.mkdir(parents=True, exist_ok=True)
     with settings_path.open("w") as f:
         json.dump(data, f, indent=2)
+
+
+def toggle_hidden_repo(repo: str, settings_path: Path | None = None) -> bool:
+    """Toggle a repo's hidden status. Returns new hidden state."""
+    settings = load_settings(settings_path)
+    if repo in settings.hidden_repos:
+        settings.hidden_repos.remove(repo)
+        is_hidden = False
+    else:
+        settings.hidden_repos.append(repo)
+        is_hidden = True
+    save_settings(settings, settings_path)
+    return is_hidden
