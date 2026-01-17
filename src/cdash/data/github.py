@@ -1,7 +1,33 @@
 """GitHub Actions data fetching and parsing."""
 
+import json
+import subprocess
 from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta
+
+
+def gh_api(endpoint: str, method: str = "GET") -> dict | list | None:
+    """Call GitHub API via gh CLI.
+
+    Args:
+        endpoint: API endpoint (e.g., "/user/repos")
+        method: HTTP method
+
+    Returns:
+        Parsed JSON response or None on error.
+    """
+    try:
+        result = subprocess.run(
+            ["gh", "api", endpoint, "-X", method],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if result.returncode != 0:
+            return None
+        return json.loads(result.stdout)
+    except (subprocess.TimeoutExpired, json.JSONDecodeError, FileNotFoundError):
+        return None
 
 
 @dataclass

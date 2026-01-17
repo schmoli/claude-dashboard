@@ -77,3 +77,41 @@ class TestCalculateRepoStats:
         """Marks repo as hidden when in hidden list."""
         stats = calculate_repo_stats("o/r", [], hidden_repos=["o/r"])
         assert stats.is_hidden is True
+
+
+class TestGhApi:
+    """Tests for GitHub API calls via gh CLI."""
+
+    def test_gh_api_returns_json(self, monkeypatch):
+        """gh_api returns parsed JSON from gh CLI."""
+        from cdash.data.github import gh_api
+        import subprocess
+
+        class MockResult:
+            stdout = '{"login": "testuser"}'
+            returncode = 0
+
+        def mock_run(*args, **kwargs):
+            return MockResult()
+
+        monkeypatch.setattr(subprocess, "run", mock_run)
+
+        result = gh_api("/user")
+        assert result == {"login": "testuser"}
+
+    def test_gh_api_returns_none_on_error(self, monkeypatch):
+        """gh_api returns None when gh CLI fails."""
+        from cdash.data.github import gh_api
+        import subprocess
+
+        class MockResult:
+            returncode = 1
+            stderr = "error"
+
+        def mock_run(*args, **kwargs):
+            return MockResult()
+
+        monkeypatch.setattr(subprocess, "run", mock_run)
+
+        result = gh_api("/user")
+        assert result is None
