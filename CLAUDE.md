@@ -56,7 +56,7 @@ After any code change:
 | 5 | Plugins Tab | ✓ |
 | 6 | MCP Servers Tab | ✓ |
 | 7 | Skills Tab | ✓ |
-| 8 | Agents Tab | **CURRENT** |
+| 8 | Agents Tab | ✓ |
 
 **Blocking issues:** None
 
@@ -80,6 +80,7 @@ After any code change:
 - Plugins tab with installed plugins list
 - MCP Servers tab with configured servers display
 - Skills tab with skills grouped by plugin
+- Agents tab with user, plugin, and built-in agents
 - Session/tool data caching for performance
 
 ## Conventions
