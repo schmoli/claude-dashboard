@@ -62,10 +62,6 @@ class OverviewTab(Vertical):
         msgs_today: int = 0,
         tools_today: int = 0,
         active_count: int = 0,
-        ci_runs: int = 0,
-        ci_passed: int = 0,
-        ci_failed: int = 0,
-        ci_repos: list | None = None,
     ) -> None:
         """Refresh all panels in the overview tab.
 
@@ -73,10 +69,6 @@ class OverviewTab(Vertical):
             msgs_today: Today's message count
             tools_today: Today's tool count
             active_count: Number of active sessions
-            ci_runs: Today's CI run count
-            ci_passed: Today's passed CI runs
-            ci_failed: Today's failed CI runs
-            ci_repos: List of RepoStats for CI panel
         """
         try:
             header = self.query_one(TodayHeader)
@@ -96,6 +88,15 @@ class OverviewTab(Vertical):
             self.query_one(ToolBreakdownPanel).refresh_tools()
         except Exception:
             pass
+
+    def update_ci(
+        self,
+        ci_runs: int = 0,
+        ci_passed: int = 0,
+        ci_failed: int = 0,
+        ci_repos: list | None = None,
+    ) -> None:
+        """Update CI panel with async-fetched data."""
         try:
             ci_panel = self.query_one(CIActivityPanel)
             ci_panel.update_stats(ci_runs, ci_passed, ci_failed)

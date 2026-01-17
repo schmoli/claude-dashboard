@@ -4,8 +4,8 @@ from datetime import datetime, timezone
 
 from textual import work
 from textual.app import ComposeResult
-from textual.containers import Vertical
-from textual.widgets import Static
+from textual.containers import Center, Vertical
+from textual.widgets import LoadingIndicator, Static
 from textual.worker import Worker
 
 from cdash.data.github import (
@@ -277,6 +277,7 @@ class CITab(Vertical):
 
     def compose(self) -> ComposeResult:
         yield Static("GITHUB ACTIONS (Claude Code)", classes="ci-title")
+        yield Center(LoadingIndicator(), id="loading-container")
         yield Static("", classes="ci-header-row", id="header-row")
         yield Vertical(id="repo-list")
         yield Static("", classes="hidden-info", id="hidden-info")
@@ -286,19 +287,47 @@ class CITab(Vertical):
 
     def on_mount(self) -> None:
         """Load data when mounted."""
+        self._update_header()
+        self._show_loading(True)
         # Check if we have discovered repos
         settings = load_settings()
         if not settings.discovered_repos:
-            self._show_status("Discovering repos with claude-code-action...")
+            self._show_status("Discovering repos...")
             self._run_discovery()
         else:
+            self._show_status("Loading CI data...")
             self._load_runs_for_repos(settings)
+
+    def on_resize(self) -> None:
+        """Update header and rows on resize."""
+        self._update_header()
+        self._refresh_display()
+
+    def _update_header(self) -> None:
+        """Update header row to match current width."""
+        try:
+            header = self.query_one("#header-row", Static)
+            available = self.size.width - RepoRow.FIXED_WIDTH - 4  # account for padding
+            repo_width = max(RepoRow.MIN_REPO_WIDTH, available)
+            header.update(
+                f"{'REPO':<{repo_width}} {'TODAY':>5}  {'WEEK':>6}  {'SUCCESS':>7}   LAST RUN"
+            )
+        except Exception:
+            pass
 
     def _show_status(self, msg: str) -> None:
         """Show a status message."""
         try:
             status = self.query_one("#status-msg", Static)
             status.update(msg)
+        except Exception:
+            pass
+
+    def _show_loading(self, show: bool) -> None:
+        """Show or hide the loading indicator."""
+        try:
+            loading = self.query_one("#loading-container", Center)
+            loading.display = show
         except Exception:
             pass
 
@@ -316,12 +345,14 @@ class CITab(Vertical):
         if event.worker.name == "_run_discovery" and event.worker.is_finished:
             repos = event.worker.result
             if repos:
-                self._show_status(f"Found {len(repos)} repos. Loading runs...")
+                self._show_status(f"Found {len(repos)} repos. Loading...")
                 settings = load_settings()
                 self._load_runs_for_repos(settings)
             else:
+                self._show_loading(False)
                 self._show_status("No repos found with claude-code-action")
         elif event.worker.name == "_fetch_all_runs" and event.worker.is_finished:
+            self._show_loading(False)
             self._show_status("")
             self._refresh_display()
 

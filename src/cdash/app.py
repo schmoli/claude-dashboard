@@ -1,10 +1,11 @@
 """Main Textual application for Claude Dashboard."""
 
+from textual import work
 from textual.app import App, ComposeResult
 from textual.widgets import Footer, Static
 
 from cdash.components.tabs import DashboardTabs, OverviewTab
-from cdash.data.github import calculate_repo_stats, fetch_workflow_runs
+from cdash.data.github import RepoStats, calculate_repo_stats, fetch_workflow_runs
 from cdash.data.sessions import get_active_sessions
 from cdash.data.settings import load_settings
 from cdash.data.stats import load_stats_cache
@@ -120,9 +121,25 @@ class ClaudeDashApp(App):
         active_count = len(active_sessions)
         status_bar.update_stats(active_count, msgs_today, tools_today)
 
-        # Get CI data (if repos are configured)
+        # Update overview with local stats (CI fetched async)
+        try:
+            overview_tab = self.query_one(OverviewTab)
+            overview_tab.refresh_data(
+                msgs_today=msgs_today,
+                tools_today=tools_today,
+                active_count=active_count,
+            )
+        except Exception:
+            pass
+
+        # Fetch CI data in background
+        self._fetch_ci_data_async()
+
+    @work(thread=True, exclusive=True, name="ci_refresh")
+    def _fetch_ci_data_async(self) -> None:
+        """Fetch CI data in background thread."""
         ci_runs, ci_passed, ci_failed = 0, 0, 0
-        ci_repos = []
+        ci_repos: list[RepoStats] = []
         try:
             settings = load_settings()
             for repo in settings.discovered_repos:
@@ -136,13 +153,22 @@ class ClaudeDashApp(App):
         except Exception:
             pass
 
-        # Refresh the overview tab data with stats for header
+        # Update UI from main thread
+        self.call_from_thread(
+            self._update_ci_display, ci_runs, ci_passed, ci_failed, ci_repos
+        )
+
+    def _update_ci_display(
+        self,
+        ci_runs: int,
+        ci_passed: int,
+        ci_failed: int,
+        ci_repos: list[RepoStats],
+    ) -> None:
+        """Update CI display on main thread."""
         try:
             overview_tab = self.query_one(OverviewTab)
-            overview_tab.refresh_data(
-                msgs_today=msgs_today,
-                tools_today=tools_today,
-                active_count=active_count,
+            overview_tab.update_ci(
                 ci_runs=ci_runs,
                 ci_passed=ci_passed,
                 ci_failed=ci_failed,
