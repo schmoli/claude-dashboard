@@ -57,6 +57,7 @@ After any code change:
 | 6 | MCP Servers Tab | ✓ |
 | 7 | Skills Tab | ✓ |
 | 8 | Agents Tab | ✓ |
+| 9 | CI Tab | ✓ |
 
 **Blocking issues:** None
 
@@ -75,12 +76,15 @@ After any code change:
 - Weekly trend sparkline
 - Projects ranked by recent activity
 - Tool breakdown with horizontal bar charts
-- Tab navigation with 1-5 keys
-- 5 tabs: Overview, Plugins, MCP Servers, Skills, Agents
+- Tab navigation with 1-6 keys
+- 6 tabs: Overview, Plugins, MCP Servers, Skills, Agents, CI
 - Plugins tab with installed plugins list
 - MCP Servers tab with configured servers display
 - Skills tab with skills grouped by plugin
 - Agents tab with user, plugin, and built-in agents
+- CI tab with GitHub Actions monitoring for claude-code-action repos
+- CI activity panel on Overview tab with today's run stats
+- Settings persistence for discovered/hidden repos
 - Session/tool data caching for performance
 
 ## Conventions
