@@ -52,8 +52,8 @@ After any code change:
 | 1 | Active Sessions | ✓ |
 | 2 | Stats & Trends | ✓ |
 | 3 | Tool Breakdown | ✓ |
-| 4 | Tab Infrastructure | **CURRENT** |
-| 5 | Plugins Tab | pending |
+| 4 | Tab Infrastructure | ✓ |
+| 5 | Plugins Tab | **CURRENT** |
 | 6 | MCP Servers Tab | pending |
 | 7 | Skills Tab | pending |
 | 8 | Agents Tab | pending |
@@ -75,6 +75,8 @@ After any code change:
 - Weekly trend sparkline
 - Projects ranked by recent activity
 - Tool breakdown with horizontal bar charts
+- Tab navigation with 1-5 keys
+- 5 tabs: Overview, Plugins, MCP Servers, Skills, Agents
 
 ## Conventions
 

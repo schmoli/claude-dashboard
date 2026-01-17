@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-01-17
+
+### Added
+
+- Tab infrastructure with 5 tabs (Overview, Plugins, MCP, Skills, Agents)
+- Keyboard navigation with 1-5 keys to switch tabs
+- Placeholder content for unimplemented tabs
+- State preserved when switching between tabs
+
 ## [0.4.0] - 2026-01-17
 
 ### Added
