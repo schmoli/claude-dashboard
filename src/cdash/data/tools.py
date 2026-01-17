@@ -1,12 +1,18 @@
 """Tool usage parsing from session JSONL files."""
 
 import json
+import time
 from collections import Counter
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
 
 from cdash.data.sessions import get_projects_dir, list_projects
+
+# Simple cache for tool usage
+_tool_cache: dict[str, "ToolUsage"] = {}
+_tool_cache_time: dict[str, float] = {}
+_CACHE_TTL = 30.0  # seconds - less frequent refresh for tools
 
 
 @dataclass
@@ -71,17 +77,25 @@ def parse_tool_calls_from_file(
     return tool_counts
 
 
-def get_tool_usage_for_date(target_date: date | None = None) -> ToolUsage:
+def get_tool_usage_for_date(target_date: date | None = None, use_cache: bool = True) -> ToolUsage:
     """Get aggregated tool usage for a specific date.
 
     Args:
         target_date: Date to aggregate for (defaults to today)
+        use_cache: If True, return cached data if available and fresh
 
     Returns:
         ToolUsage with aggregated counts
     """
     if target_date is None:
         target_date = date.today()
+
+    cache_key = target_date.isoformat()
+
+    # Return cached data if fresh
+    if use_cache and cache_key in _tool_cache:
+        if time.time() - _tool_cache_time.get(cache_key, 0) < _CACHE_TTL:
+            return _tool_cache[cache_key]
 
     total_counts: Counter[str] = Counter()
 
@@ -91,7 +105,13 @@ def get_tool_usage_for_date(target_date: date | None = None) -> ToolUsage:
                 counts = parse_tool_calls_from_file(session_file, target_date)
                 total_counts.update(counts)
 
-    return ToolUsage(tool_counts=dict(total_counts))
+    result = ToolUsage(tool_counts=dict(total_counts))
+
+    # Update cache
+    _tool_cache[cache_key] = result
+    _tool_cache_time[cache_key] = time.time()
+
+    return result
 
 
 def horizontal_bar(value: int, max_value: int, width: int = 12) -> str:

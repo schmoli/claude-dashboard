@@ -86,7 +86,7 @@ class ClaudeDashApp(App):
     ]
 
     # Refresh interval in seconds
-    REFRESH_INTERVAL = 5.0
+    REFRESH_INTERVAL = 10.0  # Increased from 5s to reduce load
 
     def compose(self) -> ComposeResult:
         yield StatusBar()

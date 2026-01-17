@@ -6,6 +6,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterator
 
+# Simple cache for session data
+_sessions_cache: list["Session"] | None = None
+_sessions_cache_time: float = 0
+_CACHE_TTL = 5.0  # seconds
+
 
 @dataclass
 class Session:
@@ -137,12 +142,22 @@ def parse_session_file(session_file: Path, project_name: str) -> Session | None:
         return None
 
 
-def load_all_sessions() -> list[Session]:
+def load_all_sessions(use_cache: bool = True) -> list[Session]:
     """Load all sessions from all projects.
+
+    Args:
+        use_cache: If True, return cached data if available and fresh
 
     Returns:
         List of Session objects, sorted by last_modified (newest first)
     """
+    global _sessions_cache, _sessions_cache_time
+
+    # Return cached data if fresh
+    if use_cache and _sessions_cache is not None:
+        if time.time() - _sessions_cache_time < _CACHE_TTL:
+            return _sessions_cache
+
     sessions = []
 
     for project_name, project_dir in list_projects():
@@ -153,6 +168,11 @@ def load_all_sessions() -> list[Session]:
 
     # Sort by last_modified, newest first
     sessions.sort(key=lambda s: s.last_modified, reverse=True)
+
+    # Update cache
+    _sessions_cache = sessions
+    _sessions_cache_time = time.time()
+
     return sessions
 
 
