@@ -4,7 +4,9 @@ from textual.app import App, ComposeResult
 from textual.widgets import Footer, Static
 
 from cdash.components.tabs import DashboardTabs, OverviewTab
+from cdash.data.github import fetch_workflow_runs, calculate_repo_stats
 from cdash.data.sessions import get_active_sessions
+from cdash.data.settings import load_settings
 from cdash.data.stats import load_stats_cache
 
 
@@ -118,6 +120,22 @@ class ClaudeDashApp(App):
         active_count = len(active_sessions)
         status_bar.update_stats(active_count, msgs_today, tools_today)
 
+        # Get CI data (if repos are configured)
+        ci_runs, ci_passed, ci_failed = 0, 0, 0
+        ci_repos = []
+        try:
+            settings = load_settings()
+            for repo in settings.discovered_repos:
+                if repo not in settings.hidden_repos:
+                    runs = fetch_workflow_runs(repo, days=1)
+                    stats = calculate_repo_stats(repo, runs, settings.hidden_repos)
+                    ci_repos.append(stats)
+                    ci_runs += stats.runs_today
+                    ci_passed += sum(1 for r in runs if r.is_success)
+                    ci_failed += len(runs) - sum(1 for r in runs if r.is_success)
+        except Exception:
+            pass
+
         # Refresh the overview tab data with stats for header
         try:
             overview_tab = self.query_one(OverviewTab)
@@ -125,6 +143,10 @@ class ClaudeDashApp(App):
                 msgs_today=msgs_today,
                 tools_today=tools_today,
                 active_count=active_count,
+                ci_runs=ci_runs,
+                ci_passed=ci_passed,
+                ci_failed=ci_failed,
+                ci_repos=ci_repos,
             )
         except Exception:
             pass

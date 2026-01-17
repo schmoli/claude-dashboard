@@ -5,7 +5,7 @@ from textual.containers import Vertical
 from textual.widgets import Static, TabbedContent, TabPane
 
 from cdash.components.agents import AgentsTab
-from cdash.components.ci import CITab
+from cdash.components.ci import CIActivityPanel, CITab
 from cdash.components.header import TodayHeader
 from cdash.components.mcp import MCPServersTab
 from cdash.components.plugins import PluginsTab
@@ -55,9 +55,17 @@ class OverviewTab(Vertical):
         yield ActiveSessionsPanel()
         yield StatsPanel()
         yield ToolBreakdownPanel()
+        yield CIActivityPanel()
 
     def refresh_data(
-        self, msgs_today: int = 0, tools_today: int = 0, active_count: int = 0
+        self,
+        msgs_today: int = 0,
+        tools_today: int = 0,
+        active_count: int = 0,
+        ci_runs: int = 0,
+        ci_passed: int = 0,
+        ci_failed: int = 0,
+        ci_repos: list | None = None,
     ) -> None:
         """Refresh all panels in the overview tab.
 
@@ -65,6 +73,10 @@ class OverviewTab(Vertical):
             msgs_today: Today's message count
             tools_today: Today's tool count
             active_count: Number of active sessions
+            ci_runs: Today's CI run count
+            ci_passed: Today's passed CI runs
+            ci_failed: Today's failed CI runs
+            ci_repos: List of RepoStats for CI panel
         """
         try:
             header = self.query_one(TodayHeader)
@@ -82,6 +94,13 @@ class OverviewTab(Vertical):
             pass
         try:
             self.query_one(ToolBreakdownPanel).refresh_tools()
+        except Exception:
+            pass
+        try:
+            ci_panel = self.query_one(CIActivityPanel)
+            ci_panel.update_stats(ci_runs, ci_passed, ci_failed)
+            if ci_repos:
+                ci_panel.update_repos(ci_repos)
         except Exception:
             pass
 
