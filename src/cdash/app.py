@@ -1,12 +1,9 @@
 """Main Textual application for Claude Dashboard."""
 
 from textual.app import App, ComposeResult
-from textual.containers import Container
 from textual.widgets import Footer, Static
 
-from cdash.components.sessions import ActiveSessionsPanel
-from cdash.components.stats import StatsPanel
-from cdash.components.tools import ToolBreakdownPanel
+from cdash.components.tabs import DashboardTabs, OverviewTab
 from cdash.data.sessions import get_active_sessions
 from cdash.data.stats import load_stats_cache
 
@@ -70,7 +67,7 @@ class ClaudeDashApp(App):
     }
 
     #main-content {
-        padding: 1;
+        height: 100%;
     }
 
     ActiveSessionsPanel {
@@ -81,6 +78,11 @@ class ClaudeDashApp(App):
 
     BINDINGS = [
         ("q", "quit", "Quit"),
+        ("1", "switch_tab('tab-overview')", "Overview"),
+        ("2", "switch_tab('tab-plugins')", "Plugins"),
+        ("3", "switch_tab('tab-mcp')", "MCP"),
+        ("4", "switch_tab('tab-skills')", "Skills"),
+        ("5", "switch_tab('tab-agents')", "Agents"),
     ]
 
     # Refresh interval in seconds
@@ -88,12 +90,7 @@ class ClaudeDashApp(App):
 
     def compose(self) -> ComposeResult:
         yield StatusBar()
-        yield Container(
-            ActiveSessionsPanel(),
-            StatsPanel(),
-            ToolBreakdownPanel(),
-            id="main-content",
-        )
+        yield DashboardTabs(id="main-content")
         yield Footer()
 
     def on_mount(self) -> None:
@@ -119,17 +116,17 @@ class ClaudeDashApp(App):
 
         status_bar.update_stats(len(active_sessions), msgs_today, tools_today)
 
-        # Refresh the sessions panel
-        sessions_panel = self.query_one(ActiveSessionsPanel)
-        sessions_panel.refresh_sessions()
+        # Refresh the overview tab data
+        try:
+            overview_tab = self.query_one(OverviewTab)
+            overview_tab.refresh_data()
+        except Exception:
+            pass
 
-        # Refresh the stats panel
-        stats_panel = self.query_one(StatsPanel)
-        stats_panel.refresh_stats()
-
-        # Refresh the tool breakdown panel
-        tools_panel = self.query_one(ToolBreakdownPanel)
-        tools_panel.refresh_tools()
+    def action_switch_tab(self, tab_id: str) -> None:
+        """Switch to a specific tab."""
+        tabs = self.query_one(DashboardTabs)
+        tabs.active = tab_id
 
     def action_quit(self) -> None:
         """Quit the application."""
