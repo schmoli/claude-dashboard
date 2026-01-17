@@ -144,7 +144,7 @@ def discover_claude_repos() -> list[str]:
 def _repo_has_claude_action(repo: str) -> bool:
     """Check if a repo has any workflow using claude-code-action."""
     workflows = gh_api(f"/repos/{repo}/actions/workflows")
-    if not workflows:
+    if not workflows or not isinstance(workflows, dict):
         return False
 
     for wf in workflows.get("workflows", []):
@@ -154,7 +154,7 @@ def _repo_has_claude_action(repo: str) -> bool:
 
         # Fetch workflow file content
         content_data = gh_api(f"/repos/{repo}/contents/{path}")
-        if not content_data:
+        if not content_data or not isinstance(content_data, dict):
             continue
 
         # Decode base64 content
@@ -185,7 +185,7 @@ def fetch_workflow_runs(repo: str, days: int = 7) -> list[WorkflowRun]:
     since_str = since.strftime("%Y-%m-%dT%H:%M:%SZ")
 
     data = gh_api(f"/repos/{repo}/actions/runs?per_page=50&created=>={since_str}")
-    if not data:
+    if not data or not isinstance(data, dict):
         return []
 
     runs = []

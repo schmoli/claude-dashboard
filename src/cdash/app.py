@@ -156,6 +156,6 @@ class ClaudeDashApp(App):
         tabs = self.query_one(DashboardTabs)
         tabs.active = tab_id
 
-    def action_quit(self) -> None:
+    async def action_quit(self) -> None:
         """Quit the application."""
         self.exit(0)
