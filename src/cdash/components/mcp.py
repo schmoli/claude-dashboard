@@ -56,7 +56,7 @@ class MCPServersTab(Vertical):
 
     DEFAULT_CSS = """
     MCPServersTab {
-        height: 100%;
+        height: auto;
         padding: 1;
     }
 

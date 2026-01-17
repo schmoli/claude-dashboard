@@ -137,3 +137,78 @@ class TestAllTabsImplemented:
             placeholders = app.query(PlaceholderTab)
             # No more placeholder tabs!
             assert len(placeholders) == 0
+
+
+class TestTabsRender:
+    """Tests that tab pages actually render with content."""
+
+    @pytest.mark.asyncio
+    async def test_overview_tab_has_height(self):
+        """Overview tab renders with non-zero height."""
+        app = ClaudeDashApp()
+        async with app.run_test():
+            overview = app.query_one(OverviewTab)
+            # Must have positive height - catches height: 100% -> 0 bug
+            assert overview.size.height > 0
+
+    @pytest.mark.asyncio
+    async def test_plugins_tab_has_height(self):
+        """Plugins tab renders with non-zero height."""
+        from cdash.components.plugins import PluginsTab
+
+        app = ClaudeDashApp()
+        async with app.run_test() as pilot:
+            await pilot.press("2")  # Switch to Plugins
+            plugins_tab = app.query_one(PluginsTab)
+            assert plugins_tab.size.height > 0
+
+    @pytest.mark.asyncio
+    async def test_mcp_tab_has_height(self):
+        """MCP tab renders with non-zero height."""
+        from cdash.components.mcp import MCPServersTab
+
+        app = ClaudeDashApp()
+        async with app.run_test() as pilot:
+            await pilot.press("3")  # Switch to MCP
+            mcp_tab = app.query_one(MCPServersTab)
+            assert mcp_tab.size.height > 0
+
+    @pytest.mark.asyncio
+    async def test_skills_tab_has_height(self):
+        """Skills tab renders with non-zero height."""
+        from cdash.components.skills import SkillsTab
+
+        app = ClaudeDashApp()
+        async with app.run_test() as pilot:
+            await pilot.press("4")  # Switch to Skills
+            skills_tab = app.query_one(SkillsTab)
+            assert skills_tab.size.height > 0
+
+    @pytest.mark.asyncio
+    async def test_agents_tab_has_height(self):
+        """Agents tab renders with non-zero height."""
+        from cdash.components.agents import AgentsTab
+
+        app = ClaudeDashApp()
+        async with app.run_test() as pilot:
+            await pilot.press("5")  # Switch to Agents
+            agents_tab = app.query_one(AgentsTab)
+            assert agents_tab.size.height > 0
+
+    @pytest.mark.asyncio
+    async def test_overview_has_visible_content(self):
+        """Overview tab has visible panels."""
+        from cdash.components.sessions import ActiveSessionsPanel
+        from cdash.components.stats import StatsPanel
+        from cdash.components.tools import ToolBreakdownPanel
+
+        app = ClaudeDashApp()
+        async with app.run_test():
+            overview = app.query_one(OverviewTab)
+            # All three panels should exist and have height
+            sessions = overview.query_one(ActiveSessionsPanel)
+            stats = overview.query_one(StatsPanel)
+            tools = overview.query_one(ToolBreakdownPanel)
+            assert sessions.size.height > 0
+            assert stats.size.height > 0
+            assert tools.size.height > 0

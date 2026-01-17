@@ -58,7 +58,7 @@ class PluginsTab(Vertical):
 
     DEFAULT_CSS = """
     PluginsTab {
-        height: 100%;
+        height: auto;
         padding: 1;
     }
 

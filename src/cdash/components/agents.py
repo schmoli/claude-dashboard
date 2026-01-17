@@ -67,7 +67,7 @@ class AgentsTab(Vertical):
 
     DEFAULT_CSS = """
     AgentsTab {
-        height: 100%;
+        height: auto;
         padding: 1;
     }
 

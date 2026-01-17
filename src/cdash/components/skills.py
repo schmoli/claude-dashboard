@@ -65,7 +65,7 @@ class SkillsTab(Vertical):
 
     DEFAULT_CSS = """
     SkillsTab {
-        height: 100%;
+        height: auto;
         padding: 1;
     }
 
