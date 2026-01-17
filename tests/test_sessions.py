@@ -7,6 +7,7 @@ from pathlib import Path
 from cdash.data.sessions import (
     Session,
     find_session_files,
+    format_duration,
     parse_session_file,
 )
 
@@ -149,3 +150,105 @@ class TestActiveSessionDetection:
         assert session is not None
         assert session.is_active is False
         assert session.current_tool is None  # No tool shown for inactive sessions
+
+
+class TestIsIdle:
+    """Tests for the is_idle property."""
+
+    def test_active_session_is_not_idle(self, tmp_path: Path):
+        """Session modified < 60s ago is active, not idle."""
+        session_file = tmp_path / "active.jsonl"
+        session_file.write_text('{"type": "user"}\n')
+
+        session = parse_session_file(session_file, "project")
+
+        assert session is not None
+        assert session.is_active is True
+        assert session.is_idle is False
+
+    def test_session_between_60s_and_5min_is_idle(self, tmp_path: Path):
+        """Session modified 60s-5min ago is idle."""
+        import os
+
+        session_file = tmp_path / "idle.jsonl"
+        session_file.write_text('{"type": "user"}\n')
+
+        # Set mtime to 2 minutes ago (120s)
+        idle_time = time.time() - 120
+        os.utime(session_file, (idle_time, idle_time))
+
+        session = parse_session_file(session_file, "project")
+
+        assert session is not None
+        assert session.is_active is False
+        assert session.is_idle is True
+
+    def test_session_older_than_5min_is_not_idle(self, tmp_path: Path):
+        """Session modified > 5min ago is inactive (not idle)."""
+        import os
+
+        session_file = tmp_path / "inactive.jsonl"
+        session_file.write_text('{"type": "user"}\n')
+
+        # Set mtime to 10 minutes ago (600s)
+        old_time = time.time() - 600
+        os.utime(session_file, (old_time, old_time))
+
+        session = parse_session_file(session_file, "project")
+
+        assert session is not None
+        assert session.is_active is False
+        assert session.is_idle is False
+
+
+class TestFormatDuration:
+    """Tests for format_duration helper."""
+
+    def test_format_zero_returns_empty(self):
+        """Zero timestamp returns empty string."""
+        assert format_duration(0) == ""
+
+    def test_format_minutes(self):
+        """Recent timestamps show minutes."""
+        # 5 minutes ago
+        started = time.time() - 5 * 60
+        result = format_duration(started)
+        assert result == "5m"
+
+    def test_format_hours(self):
+        """Older timestamps show hours."""
+        # 2 hours ago
+        started = time.time() - 2 * 60 * 60
+        result = format_duration(started)
+        assert result == "2h"
+
+    def test_format_days(self):
+        """Very old timestamps show days."""
+        # 3 days ago
+        started = time.time() - 3 * 24 * 60 * 60
+        result = format_duration(started)
+        assert result == "3d"
+
+    def test_format_boundary_59_minutes(self):
+        """59 minutes shows as minutes."""
+        started = time.time() - 59 * 60
+        result = format_duration(started)
+        assert result == "59m"
+
+    def test_format_boundary_60_minutes(self):
+        """60 minutes shows as 1 hour."""
+        started = time.time() - 60 * 60
+        result = format_duration(started)
+        assert result == "1h"
+
+    def test_format_boundary_23_hours(self):
+        """23 hours shows as hours."""
+        started = time.time() - 23 * 60 * 60
+        result = format_duration(started)
+        assert result == "23h"
+
+    def test_format_boundary_24_hours(self):
+        """24 hours shows as 1 day."""
+        started = time.time() - 24 * 60 * 60
+        result = format_duration(started)
+        assert result == "1d"

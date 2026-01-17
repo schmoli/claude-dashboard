@@ -4,7 +4,7 @@ from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.widgets import Static
 
-from cdash.data.sessions import Session, load_all_sessions
+from cdash.data.sessions import Session, format_duration, load_all_sessions
 
 
 class SessionItem(Static):
@@ -18,8 +18,13 @@ class SessionItem(Static):
         """Render the session item."""
         s = self.session
 
-        # Status indicator
-        status = "●" if s.is_active else "○"
+        # Colored status indicators
+        if s.is_active:
+            status = "[bold green]●[/]"
+        elif s.is_idle:
+            status = "[bold yellow]●[/]"
+        else:
+            status = "[dim]○[/]"
 
         # Project name (last component of path)
         project_display = s.project_name.split("/")[-1] if s.project_name else "unknown"
@@ -29,10 +34,17 @@ class SessionItem(Static):
         if len(s.prompt_preview) > 25:
             preview += "..."
 
-        # Tool indicator
-        tool = f"│⚙ {s.current_tool}" if s.current_tool else ""
+        # Tool indicator (only for active sessions)
+        tool = f"⚙ {s.current_tool}" if s.current_tool else ""
 
-        return f'{status} {project_display:<16} "{preview}" {tool}'
+        # Duration for active/idle sessions
+        duration = ""
+        if s.is_active or s.is_idle:
+            dur = format_duration(s.started_at)
+            if dur:
+                duration = f"({dur})"
+
+        return f'{status} {project_display:<16} "{preview}" {tool} {duration}'
 
 
 class ActiveSessionsPanel(Vertical):

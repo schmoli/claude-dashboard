@@ -4,7 +4,35 @@ from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.widgets import Static
 
-from cdash.data.tools import ToolUsage, get_tool_usage_for_date, horizontal_bar
+from cdash.data.tools import get_tool_usage_for_date
+
+
+def horizontal_bar_colored(value: int, max_val: int, width: int = 12) -> str:
+    """Generate a colored horizontal bar using Unicode block characters.
+
+    Args:
+        value: Current value
+        max_val: Maximum value (for scaling)
+        width: Maximum bar width in characters
+
+    Returns:
+        String representation of bar with Rich markup for color
+    """
+    if max_val == 0:
+        return ""
+
+    filled = int((value / max_val) * width) if max_val > 0 else 0
+    empty = width - filled
+
+    # Higher usage = brighter color
+    if filled == width:
+        color = "green"
+    elif filled > width // 2:
+        color = "yellow"
+    else:
+        color = "white"
+
+    return f"[{color}]{'█' * filled}[/][dim]{'░' * empty}[/]"
 
 
 class ToolItem(Static):
@@ -17,9 +45,9 @@ class ToolItem(Static):
         self.max_count = max_count
 
     def render(self) -> str:
-        """Render the tool item with bar."""
-        bar = horizontal_bar(self.count, self.max_count, width=12)
-        return f"{self.tool_name:<10} {bar} {self.count:>3}"
+        """Render the tool item with colored bar."""
+        bar = horizontal_bar_colored(self.count, self.max_count, width=12)
+        return f"{self.tool_name:<10} {bar} [cyan]{self.count:>3}[/]"
 
 
 class ToolBreakdownPanel(Vertical):

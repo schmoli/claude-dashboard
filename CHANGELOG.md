@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-01-17
+
+### Added
+
+- TodayHeader widget with big numbers (messages, tools, active count)
+- Refresh indicator showing time since last data refresh
+- Colored session status: green (active), yellow (idle), dim (inactive)
+- Session duration display (Xm, Xh, Xd format)
+- Idle session detection (60s-5min since last activity)
+
 ## [0.6.0] - 2026-01-17
 
 ### Added

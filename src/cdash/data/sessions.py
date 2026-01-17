@@ -24,6 +24,33 @@ class Session:
     prompt_preview: str
     current_tool: str | None
     is_active: bool
+    started_at: float = 0  # timestamp of first message
+
+    @property
+    def is_idle(self) -> bool:
+        """Idle = modified 60s-5min ago."""
+        age = time.time() - self.last_modified
+        return 60 < age <= 300
+
+
+def format_duration(started_at: float) -> str:
+    """Format duration as Xm, Xh, Xd.
+
+    Args:
+        started_at: Unix timestamp of when session started
+
+    Returns:
+        Human-readable duration string or empty if started_at is 0
+    """
+    if started_at == 0:
+        return ""
+    mins = int((time.time() - started_at) / 60)
+    if mins < 60:
+        return f"{mins}m"
+    hours = mins // 60
+    if hours < 24:
+        return f"{hours}h"
+    return f"{hours // 24}d"
 
 
 def get_claude_dir() -> Path:
@@ -86,6 +113,7 @@ def parse_session_file(session_file: Path, project_name: str) -> Session | None:
         prompt_preview = ""
         current_tool = None
         cwd = ""
+        started_at = 0.0
 
         with open(session_file, "r") as f:
             for line in f:
@@ -97,6 +125,18 @@ def parse_session_file(session_file: Path, project_name: str) -> Session | None:
                 # Get cwd from first message that has it
                 if not cwd and "cwd" in entry:
                     cwd = entry.get("cwd", "")
+
+                # Get started_at from first timestamp
+                if started_at == 0.0 and "timestamp" in entry:
+                    timestamp_str = entry.get("timestamp", "")
+                    if timestamp_str:
+                        try:
+                            from datetime import datetime
+
+                            dt = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
+                            started_at = dt.timestamp()
+                        except (ValueError, AttributeError):
+                            pass
 
                 # Get prompt preview from first user message
                 if not prompt_preview and entry.get("type") == "user":
@@ -137,6 +177,7 @@ def parse_session_file(session_file: Path, project_name: str) -> Session | None:
             prompt_preview=prompt_preview,
             current_tool=current_tool if is_active else None,
             is_active=is_active,
+            started_at=started_at,
         )
     except (OSError, PermissionError):
         return None
