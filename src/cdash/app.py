@@ -83,10 +83,11 @@ class ClaudeDashApp(App):
         ("3", "switch_tab('tab-mcp')", "MCP"),
         ("4", "switch_tab('tab-skills')", "Skills"),
         ("5", "switch_tab('tab-agents')", "Agents"),
+        ("6", "switch_tab('tab-ci')", "CI"),
     ]
 
     # Refresh interval in seconds
-    REFRESH_INTERVAL = 10.0  # Increased from 5s to reduce load
+    REFRESH_INTERVAL = 3.0  # Fast refresh for live feel
 
     def compose(self) -> ComposeResult:
         yield StatusBar()
@@ -114,12 +115,17 @@ class ClaudeDashApp(App):
                 msgs_today = today.message_count
                 tools_today = today.tool_call_count
 
-        status_bar.update_stats(len(active_sessions), msgs_today, tools_today)
+        active_count = len(active_sessions)
+        status_bar.update_stats(active_count, msgs_today, tools_today)
 
-        # Refresh the overview tab data
+        # Refresh the overview tab data with stats for header
         try:
             overview_tab = self.query_one(OverviewTab)
-            overview_tab.refresh_data()
+            overview_tab.refresh_data(
+                msgs_today=msgs_today,
+                tools_today=tools_today,
+                active_count=active_count,
+            )
         except Exception:
             pass
 

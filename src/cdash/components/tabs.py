@@ -5,6 +5,8 @@ from textual.containers import Vertical
 from textual.widgets import Static, TabbedContent, TabPane
 
 from cdash.components.agents import AgentsTab
+from cdash.components.ci import CITab
+from cdash.components.header import TodayHeader
 from cdash.components.mcp import MCPServersTab
 from cdash.components.plugins import PluginsTab
 from cdash.components.sessions import ActiveSessionsPanel
@@ -49,12 +51,27 @@ class OverviewTab(Vertical):
     """
 
     def compose(self) -> ComposeResult:
+        yield TodayHeader()
         yield ActiveSessionsPanel()
         yield StatsPanel()
         yield ToolBreakdownPanel()
 
-    def refresh_data(self) -> None:
-        """Refresh all panels in the overview tab."""
+    def refresh_data(
+        self, msgs_today: int = 0, tools_today: int = 0, active_count: int = 0
+    ) -> None:
+        """Refresh all panels in the overview tab.
+
+        Args:
+            msgs_today: Today's message count
+            tools_today: Today's tool count
+            active_count: Number of active sessions
+        """
+        try:
+            header = self.query_one(TodayHeader)
+            header.update_stats(msgs=msgs_today, tools=tools_today, active=active_count)
+            header.mark_refreshed()
+        except Exception:
+            pass
         try:
             self.query_one(ActiveSessionsPanel).refresh_sessions()
         except Exception:
@@ -98,6 +115,8 @@ class DashboardTabs(Vertical):
                 yield SkillsTab()
             with TabPane("Agents", id="tab-agents"):
                 yield AgentsTab()
+            with TabPane("CI", id="tab-ci"):
+                yield CITab()
 
     @property
     def active(self) -> str:

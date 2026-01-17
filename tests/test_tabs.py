@@ -26,8 +26,8 @@ class TestDashboardTabs:
             assert tabs.active == "tab-overview"
 
     @pytest.mark.asyncio
-    async def test_five_tabs_exist(self):
-        """All five tabs exist."""
+    async def test_six_tabs_exist(self):
+        """All six tabs exist."""
         app = ClaudeDashApp()
         async with app.run_test():
             tabs = app.query_one(DashboardTabs)
@@ -37,6 +37,7 @@ class TestDashboardTabs:
             assert tabs.query_one("#tab-mcp") is not None
             assert tabs.query_one("#tab-skills") is not None
             assert tabs.query_one("#tab-agents") is not None
+            assert tabs.query_one("#tab-ci") is not None
 
 
 class TestTabNavigation:
@@ -87,6 +88,15 @@ class TestTabNavigation:
             await pilot.press("1")  # Back to Overview
             tabs = app.query_one(DashboardTabs)
             assert tabs.active == "tab-overview"
+
+    @pytest.mark.asyncio
+    async def test_switch_to_ci_with_6(self):
+        """Pressing 6 switches to CI tab."""
+        app = ClaudeDashApp()
+        async with app.run_test() as pilot:
+            await pilot.press("6")
+            tabs = app.query_one(DashboardTabs)
+            assert tabs.active == "tab-ci"
 
 
 class TestOverviewTab:
@@ -194,6 +204,17 @@ class TestTabsRender:
             await pilot.press("5")  # Switch to Agents
             agents_tab = app.query_one(AgentsTab)
             assert agents_tab.size.height > 0
+
+    @pytest.mark.asyncio
+    async def test_ci_tab_has_height(self):
+        """CI tab renders with non-zero height."""
+        from cdash.components.ci import CITab
+
+        app = ClaudeDashApp()
+        async with app.run_test() as pilot:
+            await pilot.press("6")  # Switch to CI
+            ci_tab = app.query_one(CITab)
+            assert ci_tab.size.height > 0
 
     @pytest.mark.asyncio
     async def test_overview_has_visible_content(self):
