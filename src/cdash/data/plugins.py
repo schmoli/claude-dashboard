@@ -17,6 +17,7 @@ class Plugin:
     skill_count: int
     agent_count: int
     path: Path
+    enabled: bool = True  # Default to enabled if not in settings
 
 
 def get_plugins_cache_path() -> Path:
@@ -24,11 +25,19 @@ def get_plugins_cache_path() -> Path:
     return Path.home() / ".claude" / "plugins" / "cache"
 
 
-def find_installed_plugins(cache_path: Path | None = None) -> list[Plugin]:
+def find_installed_plugins(
+    cache_path: Path | None = None,
+    enabled_plugins: dict[str, bool] | None = None,
+) -> list[Plugin]:
     """Find all installed plugins in the cache directory.
 
     Scans ~/.claude/plugins/cache/<source>/<name>/<version>/ for plugins.
     For plugins with multiple versions, uses the one with highest semver.
+
+    Args:
+        cache_path: Override cache path (for testing)
+        enabled_plugins: Dict of plugin_id -> enabled state from settings.
+                        If None, all plugins default to enabled.
     """
     if cache_path is None:
         cache_path = get_plugins_cache_path()
@@ -53,7 +62,7 @@ def find_installed_plugins(cache_path: Path | None = None) -> list[Plugin]:
             if version_dir is None:
                 continue
 
-            plugin = _parse_plugin(version_dir, source_dir.name)
+            plugin = _parse_plugin(version_dir, source_dir.name, enabled_plugins)
             if plugin:
                 plugins.append(plugin)
 
@@ -116,7 +125,11 @@ def _parse_semver(version: str) -> tuple[int, ...]:
     return tuple(result)
 
 
-def _parse_plugin(version_dir: Path, source: str) -> Plugin | None:
+def _parse_plugin(
+    version_dir: Path,
+    source: str,
+    enabled_plugins: dict[str, bool] | None = None,
+) -> Plugin | None:
     """Parse plugin metadata from a version directory."""
     plugin_json = version_dir / ".claude-plugin" / "plugin.json"
 
@@ -138,8 +151,16 @@ def _parse_plugin(version_dir: Path, source: str) -> Plugin | None:
     skill_count = _count_items(commands_dir, ".md") + _count_items(skills_dir, ".md")
     agent_count = _count_items(agents_dir, ".md")
 
+    name = data.get("name", version_dir.parent.name)
+
+    # Determine enabled state from settings (default True if not in dict)
+    enabled = True
+    if enabled_plugins is not None:
+        plugin_id = f"{name}@{source}"
+        enabled = enabled_plugins.get(plugin_id, True)
+
     return Plugin(
-        name=data.get("name", version_dir.parent.name),
+        name=name,
         version=data.get("version", version_dir.name),
         description=data.get("description", ""),
         source=source,
@@ -147,6 +168,7 @@ def _parse_plugin(version_dir: Path, source: str) -> Plugin | None:
         skill_count=skill_count,
         agent_count=agent_count,
         path=version_dir,
+        enabled=enabled,
     )
 
 

@@ -120,9 +120,8 @@ class CIActivityPanel(Vertical):
 
     def render(self) -> str:
         """Render for testing purposes."""
-        return (
-            f"{self._runs_today} runs {self._passed} passed {self._failed} failed "
-            + " ".join(s.repo for s in self._top_repos)
+        return f"{self._runs_today} runs {self._passed} passed {self._failed} failed " + " ".join(
+            s.repo for s in self._top_repos
         )
 
 
@@ -168,7 +167,9 @@ class RepoRow(Static):
 
         success_pct = f"{int(s.success_rate * 100)}%"
 
-        return f"{repo:<{repo_width}} {s.runs_today:>5}  {s.runs_week:>6}  {success_pct:>7}   {last}"
+        return (
+            f"{repo:<{repo_width}} {s.runs_today:>5}  {s.runs_week:>6}  {success_pct:>7}   {last}"
+        )
 
 
 class RunRow(Static):
@@ -419,9 +420,7 @@ class CITab(Vertical):
         try:
             hidden_info = self.query_one("#hidden-info", Static)
             if self._hidden_count > 0:
-                hidden_info.update(
-                    f"── Hidden: {self._hidden_count} repos (press H to manage) ──"
-                )
+                hidden_info.update(f"── Hidden: {self._hidden_count} repos (press H to manage) ──")
             else:
                 hidden_info.update("")
         except Exception:

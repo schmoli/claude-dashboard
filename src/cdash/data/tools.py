@@ -32,9 +32,7 @@ class ToolUsage:
         return sum(self.tool_counts.values())
 
 
-def parse_tool_calls_from_file(
-    session_file: Path, target_date: date | None = None
-) -> Counter[str]:
+def parse_tool_calls_from_file(session_file: Path, target_date: date | None = None) -> Counter[str]:
     """Parse tool calls from a session JSONL file.
 
     Args:

@@ -154,9 +154,7 @@ class ClaudeDashApp(App):
             pass
 
         # Update UI from main thread
-        self.call_from_thread(
-            self._update_ci_display, ci_runs, ci_passed, ci_failed, ci_repos
-        )
+        self.call_from_thread(self._update_ci_display, ci_runs, ci_passed, ci_failed, ci_repos)
 
     def _update_ci_display(
         self,

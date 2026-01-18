@@ -190,6 +190,66 @@ class TestFindPlugins:
         assert [p.name for p in plugins] == ["alpha", "beta", "zeta"]
 
 
+class TestPluginEnabled:
+    """Tests for Plugin enabled state."""
+
+    def test_plugin_enabled_default_true(self, tmp_path: Path):
+        """Plugin defaults to enabled when no settings provided."""
+        cache = tmp_path / "cache"
+        plugin_dir = cache / "source" / "plugin" / "1.0.0"
+        plugin_dir.mkdir(parents=True)
+
+        claude_plugin = plugin_dir / ".claude-plugin"
+        claude_plugin.mkdir()
+        (claude_plugin / "plugin.json").write_text(
+            json.dumps({"name": "plugin", "version": "1.0.0"})
+        )
+
+        plugins = find_installed_plugins(cache)
+        assert len(plugins) == 1
+        assert plugins[0].enabled is True
+
+    def test_plugin_enabled_from_settings(self, tmp_path: Path):
+        """Plugin enabled state from settings dict."""
+        cache = tmp_path / "cache"
+        plugin_dir = cache / "my-source" / "my-plugin" / "1.0.0"
+        plugin_dir.mkdir(parents=True)
+
+        claude_plugin = plugin_dir / ".claude-plugin"
+        claude_plugin.mkdir()
+        (claude_plugin / "plugin.json").write_text(
+            json.dumps({"name": "my-plugin", "version": "1.0.0"})
+        )
+
+        # Plugin explicitly enabled
+        plugins = find_installed_plugins(cache, {"my-plugin@my-source": True})
+        assert plugins[0].enabled is True
+
+        # Plugin explicitly disabled
+        plugins = find_installed_plugins(cache, {"my-plugin@my-source": False})
+        assert plugins[0].enabled is False
+
+    def test_plugin_not_in_settings_defaults_enabled(self, tmp_path: Path):
+        """Plugin not in settings dict defaults to enabled."""
+        cache = tmp_path / "cache"
+        plugin_dir = cache / "source" / "plugin" / "1.0.0"
+        plugin_dir.mkdir(parents=True)
+
+        claude_plugin = plugin_dir / ".claude-plugin"
+        claude_plugin.mkdir()
+        (claude_plugin / "plugin.json").write_text(
+            json.dumps({"name": "plugin", "version": "1.0.0"})
+        )
+
+        # Empty settings dict - plugin should default to enabled
+        plugins = find_installed_plugins(cache, {})
+        assert plugins[0].enabled is True
+
+        # Settings with other plugins - this plugin should default to enabled
+        plugins = find_installed_plugins(cache, {"other@other": False})
+        assert plugins[0].enabled is True
+
+
 class TestPluginsTab:
     """Tests for PluginsTab UI component."""
 

@@ -29,10 +29,24 @@ class Agent:
 # Built-in agents that are part of Claude Code
 BUILTIN_AGENTS = [
     Agent("Bash", "Command execution specialist", "inherit", AgentSource.BUILTIN, None, None),
-    Agent("general-purpose", "General-purpose agent for complex tasks", "inherit", AgentSource.BUILTIN, None, None),
+    Agent(
+        "general-purpose",
+        "General-purpose agent for complex tasks",
+        "inherit",
+        AgentSource.BUILTIN,
+        None,
+        None,
+    ),
     Agent("Explore", "Fast codebase exploration agent", "haiku", AgentSource.BUILTIN, None, None),
     Agent("Plan", "Software architect agent for plans", "inherit", AgentSource.BUILTIN, None, None),
-    Agent("claude-code-guide", "Claude Code documentation guide", "haiku", AgentSource.BUILTIN, None, None),
+    Agent(
+        "claude-code-guide",
+        "Claude Code documentation guide",
+        "haiku",
+        AgentSource.BUILTIN,
+        None,
+        None,
+    ),
 ]
 
 
@@ -101,9 +115,7 @@ def find_all_agents(
                         continue  # Skip duplicates across versions
                     seen_plugins.add(key)
 
-                    agent = _parse_agent_file(
-                        agent_file, AgentSource.PLUGIN, plugin_dir.name
-                    )
+                    agent = _parse_agent_file(agent_file, AgentSource.PLUGIN, plugin_dir.name)
                     if agent:
                         result["plugin"].append(agent)
 

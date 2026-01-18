@@ -83,11 +83,13 @@ def find_all_skills(cache_path: Path | None = None) -> list[PluginSkills]:
     for (plugin_name, source), skills in sorted(plugin_skills_map.items()):
         # Sort skills by name within each plugin
         skills.sort(key=lambda s: s.name.lower())
-        result.append(PluginSkills(
-            plugin_name=plugin_name,
-            plugin_source=source,
-            skills=skills,
-        ))
+        result.append(
+            PluginSkills(
+                plugin_name=plugin_name,
+                plugin_source=source,
+                skills=skills,
+            )
+        )
 
     return result
 

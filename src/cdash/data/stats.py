@@ -45,7 +45,9 @@ class StatsCache:
             if day in by_date:
                 result.append(by_date[day])
             else:
-                result.append(DailyStats(date=day, message_count=0, session_count=0, tool_call_count=0))
+                result.append(
+                    DailyStats(date=day, message_count=0, session_count=0, tool_call_count=0)
+                )
 
         return result
 
