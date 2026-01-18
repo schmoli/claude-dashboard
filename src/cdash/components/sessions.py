@@ -9,6 +9,24 @@ from cdash.data.sessions import Session, format_duration, load_all_sessions
 from cdash.theme import AMBER, GREEN
 
 
+def format_project_display(project_name: str | None) -> str:
+    """Format project name for display, handling worktrees.
+
+    For worktrees like '/path/to/project/.worktrees/8', returns 'project#8'.
+    For regular paths like '/path/to/project', returns 'project'.
+    """
+    if not project_name:
+        return "unknown"
+
+    if "/.worktrees/" in project_name:
+        parts = project_name.split("/.worktrees/")
+        parent = parts[0].split("/")[-1]
+        worktree = parts[1].split("/")[0]
+        return f"{parent}#{worktree}"
+
+    return project_name.split("/")[-1]
+
+
 class SessionItem(Static):
     """A single session item in the list."""
 
@@ -28,8 +46,8 @@ class SessionItem(Static):
         else:
             status = "[dim]○[/]"
 
-        # Project name (last component of path)
-        project_display = s.project_name.split("/")[-1] if s.project_name else "unknown"
+        # Project name (handles worktrees)
+        project_display = format_project_display(s.project_name)
 
         # Truncate prompt preview
         preview = s.prompt_preview[:25] if s.prompt_preview else ""

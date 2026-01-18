@@ -323,3 +323,49 @@ class TestFormatDuration:
         started = time.time() - 24 * 60 * 60
         result = format_duration(started)
         assert result == "1d"
+
+
+class TestFormatProjectDisplay:
+    """Tests for format_project_display handling worktrees."""
+
+    def test_regular_path(self):
+        """Regular path returns last component."""
+        from cdash.components.sessions import format_project_display
+
+        result = format_project_display("/Users/toli/code/my-project")
+        assert result == "my-project"
+
+    def test_worktree_path(self):
+        """Worktree path returns parent#worktree format."""
+        from cdash.components.sessions import format_project_display
+
+        result = format_project_display("/Users/toli/code/claude-dashboard/.worktrees/8")
+        assert result == "claude-dashboard#8"
+
+    def test_worktree_with_subpath(self):
+        """Worktree path with subdirectory still extracts correctly."""
+        from cdash.components.sessions import format_project_display
+
+        result = format_project_display("/Users/toli/code/project/.worktrees/123/src")
+        assert result == "project#123"
+
+    def test_none_returns_unknown(self):
+        """None project name returns 'unknown'."""
+        from cdash.components.sessions import format_project_display
+
+        result = format_project_display(None)
+        assert result == "unknown"
+
+    def test_empty_string_returns_unknown(self):
+        """Empty string returns 'unknown'."""
+        from cdash.components.sessions import format_project_display
+
+        result = format_project_display("")
+        assert result == "unknown"
+
+    def test_hyphenated_project_name(self):
+        """Hyphenated project names are preserved."""
+        from cdash.components.sessions import format_project_display
+
+        result = format_project_display("/path/to/my-cool-project")
+        assert result == "my-cool-project"
