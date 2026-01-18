@@ -147,6 +147,32 @@ class TestLoadMCPServers:
         assert len(servers) == 1
         assert servers[0].server_type == MCPServerType.STDIO
 
+    def test_excludes_marketplace_definitions(self, tmp_path: Path):
+        """Marketplace plugin definitions are excluded."""
+        settings = tmp_path / "settings.json"
+        settings.write_text("{}")
+
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+
+        # Create a marketplace plugin definition (should be excluded)
+        marketplace_dir = plugins / "marketplaces" / "official" / "external_plugins" / "stripe"
+        marketplace_dir.mkdir(parents=True)
+        (marketplace_dir / ".mcp.json").write_text(json.dumps({
+            "mcpServers": {"stripe": {"type": "http", "url": "https://mcp.stripe.com"}}
+        }))
+
+        # Create an installed plugin MCP (should be included)
+        installed_dir = plugins / "installed" / "my-plugin"
+        installed_dir.mkdir(parents=True)
+        (installed_dir / ".mcp.json").write_text(json.dumps({
+            "mcpServers": {"my-server": {"type": "stdio", "command": "cmd"}}
+        }))
+
+        servers = load_mcp_servers(settings, plugins)
+        assert len(servers) == 1
+        assert servers[0].name == "my-server"
+
 
 class TestMCPServersTab:
     """Tests for MCPServersTab UI component."""

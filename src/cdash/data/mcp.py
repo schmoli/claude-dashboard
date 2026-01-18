@@ -64,6 +64,9 @@ def load_mcp_servers(
 
     if plugins_dir.exists():
         for mcp_file in plugins_dir.rglob(".mcp.json"):
+            # Skip marketplace plugin definitions (not installed servers)
+            if "marketplaces" in mcp_file.parts:
+                continue
             servers.extend(_load_from_settings_file(mcp_file))
 
     # Sort by name for consistent display
