@@ -26,49 +26,48 @@ class TestDashboardTabs:
             assert tabs.active == "tab-overview"
 
     @pytest.mark.asyncio
-    async def test_six_tabs_exist(self):
-        """All six tabs exist."""
+    async def test_five_tabs_exist(self):
+        """All five tabs exist (Overview, GitHub, Plugins, MCP, Agents)."""
         app = ClaudeDashApp()
         async with app.run_test():
             tabs = app.query_one(DashboardTabs)
             # Check all tab panes exist
             assert tabs.query_one("#tab-overview") is not None
+            assert tabs.query_one("#tab-github") is not None
             assert tabs.query_one("#tab-plugins") is not None
             assert tabs.query_one("#tab-mcp") is not None
-            assert tabs.query_one("#tab-skills") is not None
             assert tabs.query_one("#tab-agents") is not None
-            assert tabs.query_one("#tab-ci") is not None
 
 
 class TestTabNavigation:
     """Tests for tab keyboard navigation."""
 
     @pytest.mark.asyncio
-    async def test_switch_to_plugins_with_2(self):
-        """Pressing 2 switches to Plugins tab."""
+    async def test_switch_to_github_with_2(self):
+        """Pressing 2 switches to GitHub tab."""
         app = ClaudeDashApp()
         async with app.run_test() as pilot:
             await pilot.press("2")
             tabs = app.query_one(DashboardTabs)
-            assert tabs.active == "tab-plugins"
+            assert tabs.active == "tab-github"
 
     @pytest.mark.asyncio
-    async def test_switch_to_mcp_with_3(self):
-        """Pressing 3 switches to MCP Servers tab."""
+    async def test_switch_to_plugins_with_3(self):
+        """Pressing 3 switches to Plugins tab."""
         app = ClaudeDashApp()
         async with app.run_test() as pilot:
             await pilot.press("3")
             tabs = app.query_one(DashboardTabs)
-            assert tabs.active == "tab-mcp"
+            assert tabs.active == "tab-plugins"
 
     @pytest.mark.asyncio
-    async def test_switch_to_skills_with_4(self):
-        """Pressing 4 switches to Skills tab."""
+    async def test_switch_to_mcp_with_4(self):
+        """Pressing 4 switches to MCP tab."""
         app = ClaudeDashApp()
         async with app.run_test() as pilot:
             await pilot.press("4")
             tabs = app.query_one(DashboardTabs)
-            assert tabs.active == "tab-skills"
+            assert tabs.active == "tab-mcp"
 
     @pytest.mark.asyncio
     async def test_switch_to_agents_with_5(self):
@@ -84,19 +83,10 @@ class TestTabNavigation:
         """Pressing 1 switches back to Overview tab."""
         app = ClaudeDashApp()
         async with app.run_test() as pilot:
-            await pilot.press("3")  # Go to MCP
+            await pilot.press("3")  # Go to Plugins
             await pilot.press("1")  # Back to Overview
             tabs = app.query_one(DashboardTabs)
             assert tabs.active == "tab-overview"
-
-    @pytest.mark.asyncio
-    async def test_switch_to_ci_with_6(self):
-        """Pressing 6 switches to CI tab."""
-        app = ClaudeDashApp()
-        async with app.run_test() as pilot:
-            await pilot.press("6")
-            tabs = app.query_one(DashboardTabs)
-            assert tabs.active == "tab-ci"
 
 
 class TestOverviewTab:
@@ -162,13 +152,24 @@ class TestTabsRender:
             assert overview.size.height > 0
 
     @pytest.mark.asyncio
+    async def test_github_tab_has_height(self):
+        """GitHub tab renders with non-zero height."""
+        from cdash.components.ci import CITab
+
+        app = ClaudeDashApp()
+        async with app.run_test() as pilot:
+            await pilot.press("2")  # Switch to GitHub
+            github_tab = app.query_one(CITab)
+            assert github_tab.size.height > 0
+
+    @pytest.mark.asyncio
     async def test_plugins_tab_has_height(self):
         """Plugins tab renders with non-zero height."""
         from cdash.components.plugins import PluginsTab
 
         app = ClaudeDashApp()
         async with app.run_test() as pilot:
-            await pilot.press("2")  # Switch to Plugins
+            await pilot.press("3")  # Switch to Plugins
             plugins_tab = app.query_one(PluginsTab)
             assert plugins_tab.size.height > 0
 
@@ -179,20 +180,9 @@ class TestTabsRender:
 
         app = ClaudeDashApp()
         async with app.run_test() as pilot:
-            await pilot.press("3")  # Switch to MCP
+            await pilot.press("4")  # Switch to MCP
             mcp_tab = app.query_one(MCPServersTab)
             assert mcp_tab.size.height > 0
-
-    @pytest.mark.asyncio
-    async def test_skills_tab_has_height(self):
-        """Skills tab renders with non-zero height."""
-        from cdash.components.skills import SkillsTab
-
-        app = ClaudeDashApp()
-        async with app.run_test() as pilot:
-            await pilot.press("4")  # Switch to Skills
-            skills_tab = app.query_one(SkillsTab)
-            assert skills_tab.size.height > 0
 
     @pytest.mark.asyncio
     async def test_agents_tab_has_height(self):
@@ -204,17 +194,6 @@ class TestTabsRender:
             await pilot.press("5")  # Switch to Agents
             agents_tab = app.query_one(AgentsTab)
             assert agents_tab.size.height > 0
-
-    @pytest.mark.asyncio
-    async def test_ci_tab_has_height(self):
-        """CI tab renders with non-zero height."""
-        from cdash.components.ci import CITab
-
-        app = ClaudeDashApp()
-        async with app.run_test() as pilot:
-            await pilot.press("6")  # Switch to CI
-            ci_tab = app.query_one(CITab)
-            assert ci_tab.size.height > 0
 
     @pytest.mark.asyncio
     async def test_overview_has_visible_content(self):

@@ -10,7 +10,6 @@ from cdash.components.header import TodayHeader
 from cdash.components.mcp import MCPServersTab
 from cdash.components.plugins import PluginsTab
 from cdash.components.sessions import ActiveSessionsPanel
-from cdash.components.skills import SkillsTab
 from cdash.components.stats import StatsPanel
 from cdash.components.tools import ToolBreakdownPanel
 from cdash.theme import TAB_ICONS_ASCII
@@ -91,20 +90,19 @@ class DashboardTabs(Vertical):
 
     def compose(self) -> ComposeResult:
         # Tab labels with icons
+        # Order: Overview, GitHub, Plugins, MCP, Agents (5 tabs)
         ic = TAB_ICONS_ASCII
         with TabbedContent(initial="tab-overview"):
             with TabPane(f"{ic['overview']} Overview", id="tab-overview"):
                 yield OverviewTab()
+            with TabPane(f"{ic['ci']} GitHub", id="tab-github"):
+                yield CITab()
             with TabPane(f"{ic['plugins']} Plugins", id="tab-plugins"):
                 yield PluginsTab()
             with TabPane(f"{ic['mcp']} MCP", id="tab-mcp"):
                 yield MCPServersTab()
-            with TabPane(f"{ic['skills']} Skills", id="tab-skills"):
-                yield SkillsTab()
             with TabPane(f"{ic['agents']} Agents", id="tab-agents"):
                 yield AgentsTab()
-            with TabPane(f"{ic['ci']} CI", id="tab-ci"):
-                yield CITab()
 
     @property
     def active(self) -> str:

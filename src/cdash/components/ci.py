@@ -1,5 +1,6 @@
 """CI/GitHub Actions UI components."""
 
+import subprocess
 from datetime import datetime, timezone
 
 from textual import work
@@ -17,7 +18,21 @@ from cdash.data.github import (
     fetch_workflow_runs,
 )
 from cdash.data.settings import CdashSettings, load_settings, save_settings
-from cdash.theme import CORAL, GREEN, RED
+from cdash.theme import AMBER, CORAL, GREEN, RED
+
+
+def format_total_duration(seconds: int) -> str:
+    """Format total duration as human-readable string."""
+    if seconds < 60:
+        return f"{seconds}s"
+    mins = seconds // 60
+    if mins < 60:
+        return f"{mins}m"
+    hours = mins // 60
+    remaining_mins = mins % 60
+    if remaining_mins:
+        return f"{hours}h{remaining_mins}m"
+    return f"{hours}h"
 
 
 def format_relative_time(dt: datetime) -> str:
@@ -39,7 +54,7 @@ class CIHeader(Horizontal):
     """Header with title and refresh indicator."""
 
     def compose(self) -> ComposeResult:
-        yield Static("CI ACTIVITY (today)", classes="ci-header")
+        yield Static("GITHUB (today)", classes="ci-header")
         yield Static("", classes="header-spacer")
         yield RefreshIndicator(id="ci-refresh")
 
@@ -58,7 +73,7 @@ class CIActivityPanel(Vertical):
         yield CIHeader()
         yield Static("", classes="ci-stats")
         yield Static("", classes="ci-repos")
-        yield Static("[6: CI tab]", classes="ci-hint")
+        yield Static("[2: GitHub]", classes="ci-hint")
 
     def update_stats(self, runs_today: int, passed: int, failed: int) -> None:
         """Update summary statistics."""
@@ -157,9 +172,10 @@ class RepoRow(Static):
 class RunRow(Static):
     """Single workflow run row."""
 
-    def __init__(self, run: WorkflowRun) -> None:
+    def __init__(self, run: WorkflowRun, index: int = 0) -> None:
         super().__init__()
         self._run = run
+        self._index = index
 
     def render(self) -> str:
         r = self._run
@@ -173,13 +189,21 @@ class RunRow(Static):
 
         # Truncate title
         title = r.title
-        if len(title) > 25:
-            title = title[:22] + "..."
+        if len(title) > 20:
+            title = title[:17] + "..."
 
         time = format_relative_time(r.created_at)
 
+        # Duration
+        duration = r.duration_formatted or "-"
+
+        # Failure reason badge for non-success
+        failure_badge = ""
+        if r.conclusion and r.conclusion != "success":
+            failure_badge = f" [{RED}]{r.conclusion}[/]"
+
         repo_short = r.repo.split("/")[-1]
-        return f'{status} {repo_short:<16} {trigger:<12} "{title}"  {time}'
+        return f'{status} {repo_short:<14} {trigger:<12} "{title}"  {duration:>5}  {time}{failure_badge}'
 
 
 class CITab(Vertical):
@@ -189,6 +213,8 @@ class CITab(Vertical):
         ("h", "toggle_hidden", "Hide/Show repos"),
         ("r", "refresh", "Refresh"),
         ("d", "discover", "Discover repos"),
+        ("o", "open_run", "Open run in browser"),
+        ("p", "open_pr", "Open PR in browser"),
     ]
 
     def __init__(self) -> None:
@@ -198,14 +224,20 @@ class CITab(Vertical):
         self._hidden_count = 0
         self._loading = False
         self._discovered = False
+        # Aggregate stats
+        self._runs_today = 0
+        self._passed_today = 0
+        self._total_duration_today = 0
+        self._selected_run_index = 0
 
     def compose(self) -> ComposeResult:
         yield Static("GITHUB ACTIONS (Claude Code)", classes="ci-title")
+        yield Static("", classes="ci-aggregate-stats", id="aggregate-stats")
         yield Center(LoadingIndicator(), id="loading-container")
         yield Static("", classes="ci-header-row", id="header-row")
         yield Vertical(id="repo-list")
         yield Static("", classes="hidden-info", id="hidden-info")
-        yield Static("RECENT RUNS", classes="runs-title")
+        yield Static("RECENT RUNS  [dim](o: open run, p: open PR)[/dim]", classes="runs-title")
         yield Vertical(id="runs-list")
         yield Static("", classes="status-msg", id="status-msg")
 
@@ -325,6 +357,32 @@ class CITab(Vertical):
 
     def _refresh_display(self) -> None:
         """Refresh the UI."""
+        # Calculate aggregate stats for today
+        now = datetime.now(timezone.utc)
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        today_runs = [r for r in self._recent_runs if r.created_at >= today_start]
+        self._runs_today = len(today_runs)
+        self._passed_today = sum(1 for r in today_runs if r.is_success)
+        self._total_duration_today = sum(
+            r.duration_seconds or 0 for r in today_runs if r.status == "completed"
+        )
+
+        # Update aggregate stats display
+        try:
+            agg_stats = self.query_one("#aggregate-stats", Static)
+            if self._runs_today > 0:
+                pass_rate = int(self._passed_today / self._runs_today * 100)
+                duration_str = format_total_duration(self._total_duration_today)
+                agg_stats.update(
+                    f"TODAY: [{CORAL}]{self._runs_today}[/] runs | "
+                    f"[{AMBER}]{duration_str}[/] total | "
+                    f"[{GREEN}]{pass_rate}%[/] pass"
+                )
+            else:
+                agg_stats.update("[dim]No runs today[/dim]")
+        except Exception:
+            pass
+
         # Update repo list
         try:
             repo_list = self.query_one("#repo-list", Vertical)
@@ -354,8 +412,8 @@ class CITab(Vertical):
             runs_list = self.query_one("#runs-list", Vertical)
             runs_list.remove_children()
 
-            for run in self._recent_runs[:8]:  # Show last 8 runs
-                runs_list.mount(RunRow(run))
+            for idx, run in enumerate(self._recent_runs[:8]):  # Show last 8 runs
+                runs_list.mount(RunRow(run, index=idx))
         except Exception:
             pass
 
@@ -366,3 +424,29 @@ class CITab(Vertical):
     def action_refresh(self) -> None:
         """Force refresh data."""
         self.refresh_data()
+
+    def action_open_run(self) -> None:
+        """Open the most recent run in browser."""
+        if self._recent_runs:
+            run = self._recent_runs[0]
+            if run.html_url:
+                subprocess.run(["open", run.html_url], check=False)
+                self.notify(f"Opening run: {run.title[:30]}")
+            else:
+                self.notify("No URL available for this run")
+        else:
+            self.notify("No runs to open")
+
+    def action_open_pr(self) -> None:
+        """Open the PR associated with the most recent run."""
+        if self._recent_runs:
+            run = self._recent_runs[0]
+            if run.pr_number:
+                # Construct PR URL from repo and PR number
+                pr_url = f"https://github.com/{run.repo}/pull/{run.pr_number}"
+                subprocess.run(["open", pr_url], check=False)
+                self.notify(f"Opening PR #{run.pr_number}")
+            else:
+                self.notify("Most recent run has no associated PR")
+        else:
+            self.notify("No runs available")
