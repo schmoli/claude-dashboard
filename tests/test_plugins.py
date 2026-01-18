@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from cdash.app import ClaudeDashApp
-from cdash.components.plugins import PluginsTab
+from cdash.components.plugins import PluginCard, PluginsTab
 from cdash.data.plugins import Plugin, find_installed_plugins, _is_semver, _parse_semver
 
 
@@ -271,3 +271,83 @@ class TestPluginsTab:
             plugins_tab = app.query_one(PluginsTab)
             title = plugins_tab.query_one("#plugins-title")
             assert "INSTALLED PLUGINS" in title.render().plain
+
+    @pytest.mark.asyncio
+    async def test_plugins_tab_has_grid(self):
+        """Plugins tab has grid container."""
+        app = ClaudeDashApp()
+        async with app.run_test() as pilot:
+            await pilot.press("2")
+            plugins_tab = app.query_one(PluginsTab)
+            grid = plugins_tab.query_one("#plugins-grid")
+            assert grid is not None
+
+
+class TestPluginCard:
+    """Tests for PluginCard widget."""
+
+    def test_card_creation(self, tmp_path: Path):
+        """Card can be created from Plugin."""
+        plugin = Plugin(
+            name="test-plugin",
+            version="1.0.0",
+            description="Test",
+            source="test-source",
+            repository=None,
+            skill_count=2,
+            agent_count=1,
+            path=tmp_path,
+            enabled=True,
+        )
+        card = PluginCard(plugin)
+        assert card.plugin.name == "test-plugin"
+        assert card.enabled is True
+
+    def test_card_enabled_state(self, tmp_path: Path):
+        """Card reflects plugin enabled state."""
+        # Enabled plugin
+        enabled_plugin = Plugin(
+            name="enabled",
+            version="1.0.0",
+            description="",
+            source="src",
+            repository=None,
+            skill_count=0,
+            agent_count=0,
+            path=tmp_path,
+            enabled=True,
+        )
+        card = PluginCard(enabled_plugin)
+        assert card.enabled is True
+
+        # Disabled plugin
+        disabled_plugin = Plugin(
+            name="disabled",
+            version="1.0.0",
+            description="",
+            source="src",
+            repository=None,
+            skill_count=0,
+            agent_count=0,
+            path=tmp_path,
+            enabled=False,
+        )
+        card = PluginCard(disabled_plugin)
+        assert card.enabled is False
+
+    def test_card_initial_disabled_state(self, tmp_path: Path):
+        """Card starts with disabled state from plugin."""
+        plugin = Plugin(
+            name="test",
+            version="1.0.0",
+            description="",
+            source="src",
+            repository=None,
+            skill_count=0,
+            agent_count=0,
+            path=tmp_path,
+            enabled=False,
+        )
+        card = PluginCard(plugin)
+        assert card.enabled is False
+        assert card.plugin.enabled is False

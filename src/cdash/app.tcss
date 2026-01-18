@@ -419,51 +419,10 @@ PlaceholderTab > Static {
 }
 
 /* ============================================
-   PLUGINS TAB
+   PLUGINS TAB (Card Grid)
    ============================================ */
 
-PluginsTab {
-    height: auto;
-    padding: 1;
-}
-
-PluginsTab > #plugins-title {
-    text-style: bold;
-    color: $primary;
-    margin-bottom: 0;
-}
-
-PluginsTab > #plugins-hint {
-    color: $text-muted;
-    margin-bottom: 1;
-}
-
-PluginsTab > #plugins-list {
-    height: auto;
-    min-height: 5;
-    max-height: 20;
-    border: round $primary;
-    background: $panel;
-}
-
-PluginsTab > #no-plugins {
-    color: $text-muted;
-    text-style: italic;
-    padding: 2;
-}
-
-OptionList {
-    background: $panel;
-}
-
-OptionList > .option-list--option {
-    padding: 0 1;
-}
-
-OptionList > .option-list--option-highlighted {
-    background: $surface;
-    color: $text;
-}
+/* Note: Most PluginsTab and PluginCard styles are in DEFAULT_CSS in plugins.py */
 
 /* ============================================
    MCP SERVERS TAB
