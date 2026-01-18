@@ -40,6 +40,12 @@ StatusBar #today-stats {
     color: $text-muted;
 }
 
+StatusBar #code-changed {
+    width: auto;
+    margin-left: 1;
+    color: $warning;
+}
+
 /* ============================================
    TODAY HEADER (Hero Component)
    ============================================ */
