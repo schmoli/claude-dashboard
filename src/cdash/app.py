@@ -8,57 +8,106 @@ from textual.app import App, ComposeResult
 from textual.containers import Horizontal
 from textual.widgets import Footer, Static
 
+from cdash.components.indicators import RefreshIndicator
 from cdash.components.tabs import DashboardTabs, OverviewTab
 from cdash.data.code_watcher import check_code_changes, get_repo_root, relaunch_app
 from cdash.data.github import RepoStats, calculate_repo_stats, fetch_workflow_runs
+from cdash.data.resources import get_resource_stats
 from cdash.data.sessions import get_active_sessions
 from cdash.data.settings import load_settings
 from cdash.data.stats import load_stats_cache
-from cdash.theme import AMBER, GREEN, create_claude_theme
+from cdash.theme import AMBER, BLUE, CORAL, GREEN, TEXT_MUTED, create_claude_theme
 
 
 class StatusBar(Horizontal):
-    """Top status bar showing app name and summary stats."""
+    """Compact status bar - single source of all dashboard stats.
+
+    Layout: claude-dash │ 3 active │ 42m 128t │ 15%cpu 1.2GB 8pr ● │ ⟳ changed(r)
+    """
 
     def __init__(self) -> None:
         super().__init__()
         self._active_count = 0
+        self._msgs = 0
+        self._tools = 0
+        self._cpu = 0.0
+        self._mem_mb = 0.0
+        self._proc_count = 0
 
     def compose(self) -> ComposeResult:
         yield Static("claude-dash", id="app-name")
         yield Static("", id="active-count")
         yield Static("", id="today-stats")
+        yield Static("", id="host-stats")
+        yield RefreshIndicator(id="status-refresh")
         yield Static("", id="code-changed")
 
-    def update_stats(self, active_count: int, msgs_today: int = 0, tools_today: int = 0) -> None:
-        """Update the stats display."""
+    def update_stats(
+        self,
+        active_count: int,
+        msgs_today: int = 0,
+        tools_today: int = 0,
+    ) -> None:
+        """Update session and activity stats."""
         self._active_count = active_count
-        count_widget = self.query_one("#active-count", Static)
-        stats_widget = self.query_one("#today-stats", Static)
+        self._msgs = msgs_today
+        self._tools = tools_today
 
-        if active_count > 0:
-            count_widget.update(f"│ [{GREEN}]{active_count}[/] active")
-        else:
-            count_widget.update("")
+        try:
+            count_widget = self.query_one("#active-count", Static)
+            stats_widget = self.query_one("#today-stats", Static)
 
-        if msgs_today > 0 or tools_today > 0:
-            stats_widget.update(f"│ {msgs_today} msgs │ {tools_today} tools")
-        else:
-            stats_widget.update("")
+            if active_count > 0:
+                count_widget.update(f"│ [{GREEN}]{active_count}[/] active")
+            else:
+                count_widget.update(f"│ [{TEXT_MUTED}]0 active[/]")
+
+            stats_widget.update(f"│ [{CORAL}]{msgs_today}[/]m [{CORAL}]{tools_today}[/]t")
+        except Exception:
+            pass
+
+    def update_host_stats(self) -> None:
+        """Refresh host resource stats from psutil."""
+        stats = get_resource_stats()
+        self._cpu = stats.cpu_percent
+        self._mem_mb = stats.memory_mb
+        self._proc_count = stats.process_count
+
+        try:
+            host_widget = self.query_one("#host-stats", Static)
+
+            # CPU
+            cpu_display = min(self._cpu, 999)
+            # Memory
+            if self._mem_mb >= 1024:
+                mem_display = f"{self._mem_mb / 1024:.1f}G"
+            else:
+                mem_display = f"{self._mem_mb:.0f}M"
+
+            txt = f"│ [{CORAL}]{cpu_display:.0f}%[/] [{CORAL}]{mem_display}[/]"
+            txt += f" [{BLUE}]{self._proc_count}[/]pr"
+            host_widget.update(txt)
+        except Exception:
+            pass
+
+    def mark_refreshed(self) -> None:
+        """Mark data as just refreshed."""
+        try:
+            indicator = self.query_one("#status-refresh", RefreshIndicator)
+            indicator.mark_refreshed()
+        except Exception:
+            pass
 
     def show_code_changed(self, changed: bool, file_count: int = 0) -> None:
-        """Show/hide the code changed indicator.
-
-        Args:
-            changed: Whether code has changed since launch.
-            file_count: Number of changed files.
-        """
-        widget = self.query_one("#code-changed", Static)
-        if changed:
-            plural = "s" if file_count != 1 else ""
-            widget.update(f"│ [{AMBER}]⟳ {file_count} file{plural} changed (r)[/]")
-        else:
-            widget.update("")
+        """Show/hide the code changed indicator."""
+        try:
+            widget = self.query_one("#code-changed", Static)
+            if changed:
+                widget.update(f"│ [{AMBER}]⟳{file_count}f(r)[/]")
+            else:
+                widget.update("")
+        except Exception:
+            pass
 
 
 class ClaudeDashApp(App):
@@ -118,20 +167,18 @@ class ClaudeDashApp(App):
 
         active_count = len(active_sessions)
         status_bar.update_stats(active_count, msgs_today, tools_today)
+        status_bar.update_host_stats()
+        status_bar.mark_refreshed()
 
         # Check for code changes
         change_status = check_code_changes(self._start_time, self._repo_root)
         self._code_changed = change_status.has_changes
         status_bar.show_code_changed(change_status.has_changes, len(change_status.changed_files))
 
-        # Update overview with local stats (CI fetched async)
+        # Update overview tab (sessions only now - stats moved to StatusBar)
         try:
             overview_tab = self.query_one(OverviewTab)
-            overview_tab.refresh_data(
-                msgs_today=msgs_today,
-                tools_today=tools_today,
-                active_count=active_count,
-            )
+            overview_tab.refresh_data()
         except Exception:
             pass
 

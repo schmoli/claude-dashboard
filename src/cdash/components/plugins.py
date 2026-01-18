@@ -14,7 +14,7 @@ from cdash.data.claude_settings import (
     set_plugin_enabled,
 )
 from cdash.data.plugins import Plugin, find_installed_plugins
-from cdash.theme import GREEN, RED, CORAL, PANEL, SURFACE
+from cdash.theme import GREEN, RED
 
 
 class PluginCard(Widget, can_focus=True):
@@ -112,9 +112,13 @@ class PluginCard(Widget, can_focus=True):
         # Skill/agent counts
         parts = []
         if self.plugin.skill_count > 0:
-            parts.append(f"{self.plugin.skill_count} skill{'s' if self.plugin.skill_count != 1 else ''}")
+            parts.append(
+                f"{self.plugin.skill_count} skill{'s' if self.plugin.skill_count != 1 else ''}"
+            )
         if self.plugin.agent_count > 0:
-            parts.append(f"{self.plugin.agent_count} agent{'s' if self.plugin.agent_count != 1 else ''}")
+            parts.append(
+                f"{self.plugin.agent_count} agent{'s' if self.plugin.agent_count != 1 else ''}"
+            )
 
         if parts:
             yield Static(", ".join(parts), classes="card-details")
@@ -204,7 +208,9 @@ class PluginsTab(VerticalScroll):
 
     def compose(self) -> ComposeResult:
         yield Static("INSTALLED PLUGINS", id="plugins-title")
-        yield Static("[click/space/enter] toggle  [arrows] navigate  [r] refresh", id="plugins-hint")
+        yield Static(
+            "[click/space/enter] toggle  [arrows] navigate  [r] refresh", id="plugins-hint"
+        )
         yield Grid(id="plugins-grid")
 
     def on_mount(self) -> None:

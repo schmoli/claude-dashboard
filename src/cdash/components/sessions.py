@@ -69,46 +69,30 @@ class SessionItem(Static):
 
 
 class SessionCard(Widget, can_focus=True):
-    """Multi-line session card with rich information display."""
+    """Ultra-compact session card - 2 lines max.
+
+    Line 1: ● project@branch ACT ⏱5m 12m/48t ⚙ Tool
+    Line 2: "prompt preview..."
+    """
 
     DEFAULT_CSS = """
     SessionCard {
         height: auto;
-        padding: 1;
-        margin: 0 0 1 0;
+        padding: 0 1;
+        margin: 0;
         background: $surface;
-        border: round #333333;
+        border-left: thick $surface;
     }
     SessionCard:focus {
-        border: round $primary;
+        border-left: thick $primary;
     }
     SessionCard.active {
-        border: round $success;
+        border-left: thick $success;
     }
     SessionCard.idle {
-        border: round $warning;
+        border-left: thick $warning;
     }
-    SessionCard > .card-header {
-        height: 1;
-        width: 100%;
-    }
-    SessionCard > .card-branch {
-        height: 1;
-        color: $text-muted;
-    }
-    SessionCard > .card-divider {
-        height: 1;
-        color: #444444;
-    }
-    SessionCard > .card-prompt {
-        height: auto;
-        max-height: 3;
-        padding: 0;
-    }
-    SessionCard > .card-tool {
-        height: 1;
-    }
-    SessionCard > .card-footer {
+    SessionCard > .card-line {
         height: 1;
         width: 100%;
     }
@@ -117,119 +101,73 @@ class SessionCard(Widget, can_focus=True):
     def __init__(self, session: Session) -> None:
         super().__init__()
         self.session = session
-        # Add CSS class based on session state
         if session.is_active:
             self.add_class("active")
         elif session.is_idle:
             self.add_class("idle")
 
     def compose(self) -> ComposeResult:
-        """Build the card layout."""
+        """Build ultra-compact 2-line layout."""
+        # Line 1: status + project + badge + duration + stats + tool
+        yield Static(self._render_main_line(), classes="card-line")
+        # Line 2: prompt only
+        yield Static(self._format_prompt(), classes="card-line")
+
+    def _render_main_line(self) -> str:
+        """Render single dense line: ● project@br ACT ⏱5m 12m/48t ⚙Tool."""
+        import time
+
         s = self.session
 
-        # Header: status + project name + badge + duration
-        yield Static(self._render_header(), classes="card-header")
-
-        # Branch line (if available)
-        if s.git_branch:
-            yield Static(f"[{TEXT_MUTED}]branch: {s.git_branch}[/]", classes="card-branch")
-
-        # Divider
-        yield Static("[#444444]" + "─" * 60 + "[/]", classes="card-divider")
-
-        # Prompt preview (2 lines max, full prompt on expand)
-        prompt_text = self._format_prompt()
-        yield Static(prompt_text, classes="card-prompt")
-
-        # Divider
-        yield Static("[#444444]" + "─" * 60 + "[/]", classes="card-divider")
-
-        # Current tool with context (if active)
-        tool_text = self._render_tool()
-        if tool_text:
-            yield Static(tool_text, classes="card-tool")
-
-        # Footer: recent tools + stats
-        yield Static(self._render_footer(), classes="card-footer")
-
-    def _render_header(self) -> str:
-        """Render the card header line."""
-        s = self.session
-
-        # Status indicator
+        # Status indicator + badge
         if s.is_active:
             status = f"[bold {GREEN}]●[/]"
-            badge = f"[bold {GREEN}][ACTIVE][/]"
+            badge = f"[{GREEN}]ACT[/]"
         elif s.is_idle:
-            import time
-
             status = f"[bold {AMBER}]◐[/]"
             idle_mins = int((time.time() - s.last_modified) // 60)
-            badge = f"[{AMBER}][IDLE {idle_mins}m][/]"
+            badge = f"[{AMBER}]{idle_mins}m[/]"
         else:
             status = "[dim]○[/]"
             badge = ""
 
-        # Project name
+        # Project name + branch (truncated)
         project_display = format_project_display(s.project_name)
+        if len(project_display) > 16:
+            project_display = project_display[:14] + ".."
+        if s.git_branch:
+            branch = s.git_branch[:8]
+            project_display += f"[{TEXT_MUTED}]@{branch}[/]"
 
         # Duration
-        duration = ""
         dur = format_duration(s.started_at)
-        if dur:
-            duration = f"⏱ {dur}"
+        duration = f"⏱{dur}" if dur else ""
 
-        # Build header with proper spacing
-        left = f"{status} [bold]{project_display}[/]"
-        right = f"{badge} {duration}".strip()
+        # Stats ultra-compact
+        stats = f"[{TEXT_MUTED}]{s.message_count}/{s.tool_count}[/]"
 
-        return f"{left:<40} {right:>30}"
+        # Current tool (inline, short)
+        tool = ""
+        if s.current_tool:
+            tool_name = s.current_tool[:10] if len(s.current_tool) > 10 else s.current_tool
+            tool = f"[bold]⚙{tool_name}[/]"
+
+        # Assemble
+        parts = [f"{status} [bold]{project_display}[/]", badge, duration, stats, tool]
+        return " ".join(p for p in parts if p)
 
     def _format_prompt(self) -> str:
-        """Format the prompt preview (2 lines)."""
+        """Format single-line prompt preview (compact)."""
         s = self.session
         if not s.full_prompt:
             return f"[{TEXT_MUTED}](no prompt)[/]"
 
-        # Show first ~120 chars across 2 lines
+        # Single line, ~60 chars
         prompt = s.full_prompt.replace("\n", " ").strip()
-        if len(prompt) > 120:
-            prompt = prompt[:117] + "..."
+        if len(prompt) > 60:
+            prompt = prompt[:57] + "..."
 
-        return f'[italic]"{prompt}"[/]'
-
-    def _render_tool(self) -> str:
-        """Render current tool with context."""
-        s = self.session
-        if not s.current_tool:
-            return ""
-
-        tool_display = f"[bold]⚙ {s.current_tool}[/]"
-        if s.current_tool_input:
-            # Truncate long paths/commands
-            input_display = s.current_tool_input
-            if len(input_display) > 50:
-                input_display = "..." + input_display[-47:]
-            tool_display += f" [{TEXT_MUTED}]{input_display}[/]"
-
-        return tool_display
-
-    def _render_footer(self) -> str:
-        """Render the footer with recent tools and stats."""
-        s = self.session
-
-        # Recent tools chain (left side)
-        if s.recent_tools:
-            chain = "→".join(s.recent_tools)
-            recent = f"[{TEXT_MUTED}]Recent: {chain}[/]"
-        else:
-            recent = ""
-
-        # Stats (right side)
-        stats = f"[{TEXT_MUTED}]📊 {s.message_count} msgs, {s.tool_count} tools[/]"
-
-        # Pad to fill width
-        return f"{recent:<45} {stats:>25}"
+        return f'[{TEXT_MUTED}]"{prompt}"[/]'
 
 
 class SessionsHeader(Horizontal):

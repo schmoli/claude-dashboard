@@ -71,70 +71,58 @@ class TestSessionCard:
         assert "active" not in card.classes
         assert "idle" not in card.classes
 
-    def test_render_header_active_session(self):
-        """Header renders correctly for active session."""
+    def test_main_line_active_session(self):
+        """Main line renders correctly for active session."""
         session = make_session(is_active=True, project_name="/path/to/myproject")
         card = SessionCard(session)
-        header = card._render_header()
-        assert "myproject" in header
-        assert "[ACTIVE]" in header
+        main_line = card._render_main_line()
+        assert "myproject" in main_line
+        assert "ACT" in main_line  # Compact badge
 
-    def test_render_header_idle_session(self):
-        """Header renders correctly for idle session."""
+    def test_main_line_idle_session(self):
+        """Main line renders correctly for idle session."""
         session = make_session(is_active=False, is_idle=True)
         card = SessionCard(session)
-        header = card._render_header()
-        assert "[IDLE" in header
+        main_line = card._render_main_line()
+        # Idle shows minutes like "2m"
+        assert "m" in main_line or "◐" in main_line
 
-    def test_render_tool_with_file_path(self):
-        """Tool renders with file path input."""
+    def test_main_line_shows_tool(self):
+        """Main line includes current tool when active."""
         session = make_session(
             is_active=True,
             current_tool="Read",
             current_tool_input="/src/main.py",
         )
         card = SessionCard(session)
-        tool = card._render_tool()
-        assert "Read" in tool
-        assert "/src/main.py" in tool
+        main_line = card._render_main_line()
+        assert "Read" in main_line
 
-    def test_render_tool_truncates_long_input(self):
-        """Long tool input is truncated."""
-        long_path = "/very/long/path/to/some/deeply/nested/file/in/project.py"
+    def test_main_line_truncates_long_tool(self):
+        """Long tool names are truncated in main line."""
         session = make_session(
             is_active=True,
-            current_tool="Read",
-            current_tool_input=long_path,
+            current_tool="VeryLongToolNameThatShouldBeTruncated",
         )
         card = SessionCard(session)
-        tool = card._render_tool()
-        assert "..." in tool  # Should have truncation indicator
-        assert len(tool) < len(long_path) + 50  # Should be truncated
+        main_line = card._render_main_line()
+        # Tool should be truncated to ~10 chars
+        assert "VeryLongTo" in main_line or "VeryLongToo" in main_line
 
-    def test_render_tool_empty_when_no_tool(self):
-        """No tool output when session has no current tool."""
-        session = make_session(is_active=True, current_tool=None)
-        card = SessionCard(session)
-        tool = card._render_tool()
-        assert tool == ""
-
-    def test_render_footer_with_recent_tools(self):
-        """Footer shows recent tools chain."""
-        session = make_session(recent_tools=["Read", "Edit", "Bash"])
-        card = SessionCard(session)
-        footer = card._render_footer()
-        assert "Recent:" in footer
-        assert "Read" in footer
-        assert "Edit" in footer
-        assert "Bash" in footer
-
-    def test_render_footer_with_stats(self):
-        """Footer shows message and tool counts."""
+    def test_main_line_shows_stats(self):
+        """Main line includes message/tool stats."""
         session = make_session(message_count=15, tool_count=42)
         card = SessionCard(session)
-        footer = card._render_footer()
-        assert "15 msgs" in footer
-        assert "42 tools" in footer
+        main_line = card._render_main_line()
+        assert "15" in main_line
+        assert "42" in main_line
+
+    def test_main_line_shows_branch(self):
+        """Main line includes git branch when available."""
+        session = make_session(git_branch="feature/new-thing")
+        card = SessionCard(session)
+        main_line = card._render_main_line()
+        assert "@feature" in main_line or "feature" in main_line
 
     def test_format_prompt_truncates_long_prompt(self):
         """Long prompts are truncated."""

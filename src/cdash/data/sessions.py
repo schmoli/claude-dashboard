@@ -231,7 +231,9 @@ def parse_session_file(session_file: Path, project_name: str) -> Session | None:
                                         elif "command" in tool_input:
                                             cmd = tool_input["command"]
                                             # Truncate long commands
-                                            current_tool_input = cmd[:40] + "..." if len(cmd) > 40 else cmd
+                                            current_tool_input = (
+                                                cmd[:40] + "..." if len(cmd) > 40 else cmd
+                                            )
                                         # Get pattern for Glob/Grep
                                         elif "pattern" in tool_input:
                                             current_tool_input = tool_input["pattern"]

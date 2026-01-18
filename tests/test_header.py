@@ -1,34 +1,36 @@
-"""Tests for TodayHeader widget."""
+"""Tests for StatusBar widget."""
 
 import pytest
 
-from cdash.components.header import TodayHeader
+from cdash.app import StatusBar
 
 
-class TestTodayHeader:
-    """Tests for TodayHeader widget."""
-
-    @pytest.mark.asyncio
-    async def test_header_renders(self):
-        """TodayHeader can be created and rendered."""
-        header = TodayHeader()
-        # Widget should exist with default values
-        assert header is not None
+class TestStatusBar:
+    """Tests for StatusBar widget."""
 
     @pytest.mark.asyncio
-    async def test_header_update_stats(self):
-        """TodayHeader updates stats correctly."""
-        header = TodayHeader()
-        header.update_stats(msgs=847, tools=142, active=3)
-
-        assert header._msgs == 847
-        assert header._tools == 142
-        assert header._active == 3
+    async def test_statusbar_renders(self):
+        """StatusBar can be created and rendered."""
+        statusbar = StatusBar()
+        assert statusbar is not None
 
     @pytest.mark.asyncio
-    async def test_header_has_mark_refreshed(self):
-        """TodayHeader has mark_refreshed method."""
-        header = TodayHeader()
-        # Should not raise - delegates to child RefreshIndicator
-        assert hasattr(header, "mark_refreshed")
-        assert callable(header.mark_refreshed)
+    async def test_statusbar_update_stats(self):
+        """StatusBar updates internal stats correctly."""
+        from cdash.app import ClaudeDashApp
+
+        app = ClaudeDashApp()
+        async with app.run_test() as pilot:
+            statusbar = app.query_one(StatusBar)
+            statusbar.update_stats(active_count=3, msgs_today=847, tools_today=142)
+
+            assert statusbar._active_count == 3
+            assert statusbar._msgs == 847
+            assert statusbar._tools == 142
+
+    @pytest.mark.asyncio
+    async def test_statusbar_has_mark_refreshed(self):
+        """StatusBar has mark_refreshed method."""
+        statusbar = StatusBar()
+        assert hasattr(statusbar, "mark_refreshed")
+        assert callable(statusbar.mark_refreshed)
