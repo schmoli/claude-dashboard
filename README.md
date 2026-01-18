@@ -41,6 +41,33 @@ ruff format src/
 ruff check src/
 ```
 
+## Parallel Development with Worktrees
+
+Work on multiple issues simultaneously using git worktrees:
+
+```bash
+# Create worktree for issue #123
+gh issue view 123 --json number,title,body
+git fetch origin main
+git worktree add -b toli/fix/bug-name .worktrees/123 origin/main
+ln -s ../../.venv .worktrees/123/.venv
+
+# Run background agent (simple tasks)
+claude --dir .worktrees/123 --print "Read ISSUE.md, implement, test, commit, create PR" &
+
+# Or guided session (complex tasks)
+cd .worktrees/123 && claude
+
+# Check status
+git worktree list
+gh pr list --state open
+
+# Cleanup after merge
+git worktree remove .worktrees/123
+```
+
+See `CLAUDE.md` for full workflow details and ISSUE.md template.
+
 ## License
 
 MIT
