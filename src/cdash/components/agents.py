@@ -10,13 +10,6 @@ from cdash.data.agents import Agent, find_all_agents
 class AgentRow(Static):
     """Single agent row display."""
 
-    DEFAULT_CSS = """
-    AgentRow {
-        height: 1;
-        padding: 0 1;
-    }
-    """
-
     def __init__(self, agent: Agent) -> None:
         super().__init__()
         self._agent = agent
@@ -39,18 +32,6 @@ class AgentRow(Static):
 class AgentGroup(Vertical):
     """Group of agents by source type."""
 
-    DEFAULT_CSS = """
-    AgentGroup {
-        height: auto;
-        margin-bottom: 1;
-    }
-
-    AgentGroup > .group-header {
-        text-style: bold;
-        color: $text-muted;
-    }
-    """
-
     def __init__(self, title: str, agents: list[Agent]) -> None:
         super().__init__()
         self._title = title
@@ -64,28 +45,6 @@ class AgentGroup(Vertical):
 
 class AgentsTab(Vertical):
     """Agents tab showing available agents grouped by source."""
-
-    DEFAULT_CSS = """
-    AgentsTab {
-        height: auto;
-        padding: 1;
-    }
-
-    AgentsTab > #agents-title {
-        text-style: bold;
-        margin-bottom: 1;
-    }
-
-    AgentsTab > #agents-list {
-        height: auto;
-    }
-
-    AgentsTab > #no-agents {
-        color: $text-muted;
-        text-style: italic;
-        padding: 2;
-    }
-    """
 
     def compose(self) -> ComposeResult:
         yield Static("AGENTS", id="agents-title")

@@ -10,14 +10,6 @@ from cdash.data.mcp import MCPServer, MCPServerType, load_mcp_servers
 class MCPServerRow(Static):
     """Single MCP server row display."""
 
-    DEFAULT_CSS = """
-    MCPServerRow {
-        height: auto;
-        padding: 0 1;
-        margin-bottom: 1;
-    }
-    """
-
     def __init__(self, server: MCPServer) -> None:
         super().__init__()
         self._server = server
@@ -53,28 +45,6 @@ class MCPServerRow(Static):
 
 class MCPServersTab(Vertical):
     """MCP Servers tab showing configured MCP servers."""
-
-    DEFAULT_CSS = """
-    MCPServersTab {
-        height: auto;
-        padding: 1;
-    }
-
-    MCPServersTab > #mcp-title {
-        text-style: bold;
-        margin-bottom: 1;
-    }
-
-    MCPServersTab > #mcp-list {
-        height: auto;
-    }
-
-    MCPServersTab > #no-servers {
-        color: $text-muted;
-        text-style: italic;
-        padding: 2;
-    }
-    """
 
     def compose(self) -> ComposeResult:
         yield Static("MCP SERVERS", id="mcp-title")

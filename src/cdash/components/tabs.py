@@ -13,24 +13,11 @@ from cdash.components.sessions import ActiveSessionsPanel
 from cdash.components.skills import SkillsTab
 from cdash.components.stats import StatsPanel
 from cdash.components.tools import ToolBreakdownPanel
+from cdash.theme import TAB_ICONS_ASCII
 
 
 class PlaceholderTab(Vertical):
     """Placeholder content for tabs not yet implemented."""
-
-    DEFAULT_CSS = """
-    PlaceholderTab {
-        height: auto;
-        padding: 2;
-        align: center middle;
-    }
-
-    PlaceholderTab > Static {
-        text-align: center;
-        color: $text-muted;
-        text-style: italic;
-    }
-    """
 
     def __init__(self, message: str) -> None:
         super().__init__()
@@ -42,13 +29,6 @@ class PlaceholderTab(Vertical):
 
 class OverviewTab(Vertical):
     """Overview tab with sessions, stats, and tool breakdown."""
-
-    DEFAULT_CSS = """
-    OverviewTab {
-        height: auto;
-        padding: 0;
-    }
-    """
 
     def compose(self) -> ComposeResult:
         yield TodayHeader()
@@ -109,33 +89,21 @@ class OverviewTab(Vertical):
 class DashboardTabs(Vertical):
     """Main tabbed content area for the dashboard."""
 
-    DEFAULT_CSS = """
-    DashboardTabs {
-        height: 100%;
-    }
-
-    DashboardTabs > TabbedContent {
-        height: 100%;
-    }
-
-    DashboardTabs TabPane {
-        padding: 1;
-    }
-    """
-
     def compose(self) -> ComposeResult:
+        # Tab labels with icons
+        ic = TAB_ICONS_ASCII
         with TabbedContent(initial="tab-overview"):
-            with TabPane("Overview", id="tab-overview"):
+            with TabPane(f"{ic['overview']} Overview", id="tab-overview"):
                 yield OverviewTab()
-            with TabPane("Plugins", id="tab-plugins"):
+            with TabPane(f"{ic['plugins']} Plugins", id="tab-plugins"):
                 yield PluginsTab()
-            with TabPane("MCP Servers", id="tab-mcp"):
+            with TabPane(f"{ic['mcp']} MCP", id="tab-mcp"):
                 yield MCPServersTab()
-            with TabPane("Skills", id="tab-skills"):
+            with TabPane(f"{ic['skills']} Skills", id="tab-skills"):
                 yield SkillsTab()
-            with TabPane("Agents", id="tab-agents"):
+            with TabPane(f"{ic['agents']} Agents", id="tab-agents"):
                 yield AgentsTab()
-            with TabPane("CI", id="tab-ci"):
+            with TabPane(f"{ic['ci']} CI", id="tab-ci"):
                 yield CITab()
 
     @property

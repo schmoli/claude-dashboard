@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-01-18
+
+### Changed
+
+- Complete UI makeover with "Warm Terminal" aesthetic
+- Centralized stylesheet (app.tcss) replacing inline DEFAULT_CSS
+- Custom theme with Anthropic coral/terracotta branding
+- Card-based panel design with rounded borders
+- Tab icons using ASCII glyphs (◉ ⬡ ◎ ⚡ ● ◈)
+
+### Added
+
+- `theme.py` with color constants (CORAL, BLUE, GREEN, AMBER, RED)
+- Hover states on interactive rows
+- Textual scrollbar styling
+
+### Technical
+
+- External CSS via `CSS_PATH` attribute
+- Theme registration via `register_theme()` + `self.theme`
+- Removed all component DEFAULT_CSS blocks
+
 ## [0.6.1] - 2026-01-17
 
 ### Added

@@ -12,6 +12,7 @@ from cdash.data.claude_settings import (
     set_plugin_enabled,
 )
 from cdash.data.plugins import Plugin, find_installed_plugins
+from cdash.theme import GREEN, RED
 
 
 class PluginsTab(Vertical):
@@ -22,36 +23,6 @@ class PluginsTab(Vertical):
         Binding("enter", "toggle_plugin", "Toggle"),
         Binding("r", "refresh", "Refresh"),
     ]
-
-    DEFAULT_CSS = """
-    PluginsTab {
-        height: auto;
-        padding: 1;
-    }
-
-    PluginsTab > #plugins-title {
-        text-style: bold;
-        margin-bottom: 0;
-    }
-
-    PluginsTab > #plugins-hint {
-        color: $text-muted;
-        margin-bottom: 1;
-    }
-
-    PluginsTab > #plugins-list {
-        height: auto;
-        min-height: 5;
-        max-height: 20;
-        border: solid $primary;
-    }
-
-    PluginsTab > #no-plugins {
-        color: $text-muted;
-        text-style: italic;
-        padding: 2;
-    }
-    """
 
     def __init__(self) -> None:
         super().__init__()
@@ -85,7 +56,7 @@ class PluginsTab(Vertical):
     def _make_option(self, plugin: Plugin) -> Option:
         """Create an option for a plugin."""
         # Status indicator: green filled circle for enabled, red empty for disabled
-        status = "[green]●[/]" if plugin.enabled else "[red]○[/]"
+        status = f"[{GREEN}]●[/]" if plugin.enabled else f"[{RED}]○[/]"
         source_short = _shorten_source(plugin.source)
 
         # Main line with status

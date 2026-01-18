@@ -1,0 +1,608 @@
+/* Claude Dashboard - Warm Terminal Theme
+   Anthropic coral/terracotta merged with sophisticated terminal aesthetic */
+
+/* ============================================
+   BASE / APP
+   ============================================ */
+
+Screen {
+    background: $background;
+}
+
+/* ============================================
+   STATUS BAR
+   ============================================ */
+
+StatusBar {
+    dock: top;
+    height: 1;
+    background: $primary-darken-2;
+    color: $text;
+    padding: 0 1;
+    layout: horizontal;
+}
+
+StatusBar #app-name {
+    text-style: bold;
+    width: auto;
+    color: $text;
+}
+
+StatusBar #active-count {
+    width: auto;
+    margin-left: 1;
+    color: $success;
+}
+
+StatusBar #today-stats {
+    width: auto;
+    margin-left: 1;
+    color: $text-muted;
+}
+
+/* ============================================
+   TODAY HEADER (Hero Component)
+   ============================================ */
+
+TodayHeader {
+    height: 3;
+    padding: 0 1;
+    margin-bottom: 1;
+    background: $panel;
+    border: round #333333;
+}
+
+TodayHeader > .header-title {
+    text-style: bold;
+    color: $primary;
+    width: auto;
+}
+
+TodayHeader > .stat-block {
+    width: auto;
+    margin-left: 2;
+    background: $surface;
+    padding: 0 1;
+}
+
+TodayHeader > .spacer {
+    width: 1fr;
+}
+
+TodayHeader > .refresh-info {
+    color: $text-muted;
+    width: auto;
+    text-align: right;
+}
+
+/* ============================================
+   ACTIVE SESSIONS PANEL
+   ============================================ */
+
+ActiveSessionsPanel {
+    height: auto;
+    padding: 1;
+    background: $panel;
+    border: round #333333;
+    margin: 0 1 1 1;
+}
+
+ActiveSessionsPanel > .section-title {
+    text-style: bold;
+    color: $secondary;
+    padding: 0;
+    margin-bottom: 1;
+}
+
+ActiveSessionsPanel > SessionItem {
+    height: 1;
+    padding: 0 1;
+    background: $surface;
+    margin-bottom: 0;
+}
+
+ActiveSessionsPanel > SessionItem:hover {
+    background: $panel;
+}
+
+ActiveSessionsPanel > .no-sessions {
+    color: $text-muted;
+    text-style: italic;
+}
+
+/* ============================================
+   STATS PANEL
+   ============================================ */
+
+StatsPanel {
+    height: auto;
+    padding: 0 1;
+    margin-top: 1;
+}
+
+StatsPanel > Horizontal {
+    height: auto;
+}
+
+StatsPanel > Horizontal > Vertical {
+    width: 1fr;
+    height: auto;
+    background: $panel;
+    border: round #333333;
+    padding: 1;
+    margin-right: 1;
+}
+
+StatsPanel > Horizontal > Vertical:last-child {
+    margin-right: 0;
+}
+
+StatsPanel .section-title {
+    text-style: bold;
+    color: $secondary;
+    padding: 0;
+    margin-bottom: 1;
+}
+
+StatsPanel .trend-container {
+    width: auto;
+    min-width: 20;
+}
+
+StatsPanel .trend-label {
+    color: $text-muted;
+}
+
+StatsPanel ProjectItem {
+    height: 1;
+    padding: 0;
+}
+
+StatsPanel ProjectItem:hover {
+    background: $surface;
+}
+
+StatsPanel .no-data {
+    color: $text-muted;
+    text-style: italic;
+}
+
+/* ============================================
+   TOOL BREAKDOWN PANEL
+   ============================================ */
+
+ToolBreakdownPanel {
+    height: auto;
+    padding: 1;
+    margin: 1 1 0 1;
+    background: $panel;
+    border: round #333333;
+}
+
+ToolBreakdownPanel > .section-title {
+    text-style: bold;
+    color: $secondary;
+    padding: 0;
+    margin-bottom: 1;
+}
+
+ToolBreakdownPanel > ToolItem {
+    height: 1;
+    padding: 0;
+}
+
+ToolBreakdownPanel > .no-data {
+    color: $text-muted;
+    text-style: italic;
+}
+
+/* ============================================
+   CI ACTIVITY PANEL (Overview Tab)
+   ============================================ */
+
+CIActivityPanel {
+    height: auto;
+    padding: 1;
+    margin: 1 1 1 1;
+    background: $panel;
+    border: round #333333;
+}
+
+CIActivityPanel > .ci-header {
+    text-style: bold;
+    color: $secondary;
+}
+
+CIActivityPanel > .ci-stats {
+    height: 1;
+}
+
+CIActivityPanel > .ci-repos {
+    height: auto;
+    max-height: 3;
+    padding-left: 2;
+    color: $text-muted;
+}
+
+CIActivityPanel > .ci-hint {
+    color: $text-muted;
+    text-align: right;
+}
+
+/* ============================================
+   CI TAB (Full Tab)
+   ============================================ */
+
+CITab {
+    height: auto;
+    padding: 1;
+}
+
+CITab > .ci-title {
+    text-style: bold;
+    color: $primary;
+    margin-bottom: 1;
+}
+
+CITab > .ci-header-row {
+    color: $text-muted;
+    padding: 0 1;
+    margin-bottom: 0;
+    background: $surface;
+}
+
+CITab > #repo-list {
+    height: auto;
+    max-height: 10;
+    margin-bottom: 1;
+    background: $panel;
+    border: round #333333;
+}
+
+CITab > .hidden-info {
+    color: $text-muted;
+    text-style: italic;
+    padding: 0 1;
+}
+
+CITab > .runs-title {
+    text-style: bold;
+    color: $secondary;
+    margin-top: 1;
+    margin-bottom: 1;
+}
+
+CITab > #runs-list {
+    height: auto;
+    max-height: 8;
+    background: $panel;
+    border: round #333333;
+}
+
+CITab > #loading-container {
+    height: 3;
+    align: center middle;
+}
+
+CITab > .status-msg {
+    color: $text-muted;
+    text-style: italic;
+    padding: 0 1;
+}
+
+CITab RepoRow {
+    height: 1;
+    padding: 0 1;
+}
+
+CITab RepoRow:hover {
+    background: $surface;
+}
+
+CITab RunRow {
+    height: 1;
+    padding: 0 1;
+}
+
+CITab RunRow:hover {
+    background: $surface;
+}
+
+/* ============================================
+   DASHBOARD TABS
+   ============================================ */
+
+DashboardTabs {
+    height: 100%;
+}
+
+DashboardTabs > TabbedContent {
+    height: 100%;
+}
+
+DashboardTabs TabPane {
+    padding: 1;
+    background: $background;
+}
+
+/* Tab bar styling */
+TabbedContent > ContentSwitcher {
+    background: $background;
+}
+
+Tabs {
+    background: $surface;
+}
+
+Tab {
+    background: $surface;
+    color: $text-muted;
+    padding: 0 2;
+}
+
+Tab:hover {
+    background: $panel;
+    color: $text;
+}
+
+Tab.-active {
+    background: $panel;
+    color: $primary;
+    text-style: bold;
+}
+
+Underline {
+    color: $primary;
+}
+
+/* ============================================
+   OVERVIEW TAB
+   ============================================ */
+
+OverviewTab {
+    height: auto;
+    padding: 0;
+    background: $background;
+}
+
+/* ============================================
+   PLACEHOLDER TAB
+   ============================================ */
+
+PlaceholderTab {
+    height: auto;
+    padding: 2;
+    align: center middle;
+}
+
+PlaceholderTab > Static {
+    text-align: center;
+    color: $text-muted;
+    text-style: italic;
+}
+
+/* ============================================
+   PLUGINS TAB
+   ============================================ */
+
+PluginsTab {
+    height: auto;
+    padding: 1;
+}
+
+PluginsTab > #plugins-title {
+    text-style: bold;
+    color: $primary;
+    margin-bottom: 0;
+}
+
+PluginsTab > #plugins-hint {
+    color: $text-muted;
+    margin-bottom: 1;
+}
+
+PluginsTab > #plugins-list {
+    height: auto;
+    min-height: 5;
+    max-height: 20;
+    border: round $primary;
+    background: $panel;
+}
+
+PluginsTab > #no-plugins {
+    color: $text-muted;
+    text-style: italic;
+    padding: 2;
+}
+
+OptionList {
+    background: $panel;
+}
+
+OptionList > .option-list--option {
+    padding: 0 1;
+}
+
+OptionList > .option-list--option-highlighted {
+    background: $surface;
+    color: $text;
+}
+
+/* ============================================
+   MCP SERVERS TAB
+   ============================================ */
+
+MCPServersTab {
+    height: auto;
+    padding: 1;
+}
+
+MCPServersTab > #mcp-title {
+    text-style: bold;
+    color: $primary;
+    margin-bottom: 1;
+}
+
+MCPServersTab > #mcp-list {
+    height: auto;
+    background: $panel;
+    border: round #333333;
+    padding: 1;
+}
+
+MCPServersTab > #no-servers {
+    color: $text-muted;
+    text-style: italic;
+    padding: 2;
+}
+
+MCPServerRow {
+    height: auto;
+    padding: 0 1;
+    margin-bottom: 1;
+}
+
+MCPServerRow:hover {
+    background: $surface;
+}
+
+/* ============================================
+   SKILLS TAB
+   ============================================ */
+
+SkillsTab {
+    height: auto;
+    padding: 1;
+}
+
+SkillsTab > #skills-title {
+    text-style: bold;
+    color: $primary;
+    margin-bottom: 1;
+}
+
+SkillsTab > #skills-list {
+    height: auto;
+    background: $panel;
+    border: round #333333;
+    padding: 1;
+}
+
+SkillsTab > #no-skills {
+    color: $text-muted;
+    text-style: italic;
+    padding: 2;
+}
+
+PluginSkillsGroup {
+    height: auto;
+    margin-bottom: 1;
+}
+
+PluginSkillsGroup > .plugin-header {
+    text-style: bold;
+    color: $secondary;
+}
+
+SkillRow {
+    height: auto;
+    padding: 0 1;
+}
+
+SkillRow:hover {
+    background: $surface;
+}
+
+/* ============================================
+   AGENTS TAB
+   ============================================ */
+
+AgentsTab {
+    height: auto;
+    padding: 1;
+}
+
+AgentsTab > #agents-title {
+    text-style: bold;
+    color: $primary;
+    margin-bottom: 1;
+}
+
+AgentsTab > #agents-list {
+    height: auto;
+    background: $panel;
+    border: round #333333;
+    padding: 1;
+}
+
+AgentsTab > #no-agents {
+    color: $text-muted;
+    text-style: italic;
+    padding: 2;
+}
+
+AgentGroup {
+    height: auto;
+    margin-bottom: 1;
+}
+
+AgentGroup > .group-header {
+    text-style: bold;
+    color: $secondary;
+}
+
+AgentRow {
+    height: 1;
+    padding: 0 1;
+}
+
+AgentRow:hover {
+    background: $surface;
+}
+
+/* ============================================
+   FOOTER
+   ============================================ */
+
+Footer {
+    background: $surface;
+    color: $text-muted;
+}
+
+FooterKey > .footer-key--key {
+    background: $primary-darken-2;
+    color: $text;
+}
+
+FooterKey > .footer-key--description {
+    color: $text-muted;
+}
+
+/* ============================================
+   LOADING INDICATOR
+   ============================================ */
+
+LoadingIndicator {
+    color: $primary;
+}
+
+/* ============================================
+   SCROLLBARS
+   ============================================ */
+
+/* Textual scrollbar styling */
+Scrollbar {
+    background: $surface;
+}
+
+Scrollbar > .scrollbar--bar {
+    color: #404040;
+}
+
+Scrollbar > .scrollbar--bar-hover {
+    color: #505050;
+}
+
+Scrollbar > .scrollbar--bar-active {
+    color: #606060;
+}

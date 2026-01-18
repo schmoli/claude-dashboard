@@ -5,6 +5,7 @@ from textual.containers import Vertical
 from textual.widgets import Static
 
 from cdash.data.tools import get_tool_usage_for_date
+from cdash.theme import BLUE, CORAL, TEXT_MUTED
 
 
 def horizontal_bar_colored(value: int, max_val: int, width: int = 12) -> str:
@@ -24,13 +25,13 @@ def horizontal_bar_colored(value: int, max_val: int, width: int = 12) -> str:
     filled = int((value / max_val) * width) if max_val > 0 else 0
     empty = width - filled
 
-    # Higher usage = brighter color
+    # Coral for high usage, blue for medium, muted for low
     if filled == width:
-        color = "green"
+        color = CORAL
     elif filled > width // 2:
-        color = "yellow"
+        color = BLUE
     else:
-        color = "white"
+        color = TEXT_MUTED
 
     return f"[{color}]{'█' * filled}[/][dim]{'░' * empty}[/]"
 
@@ -47,36 +48,11 @@ class ToolItem(Static):
     def render(self) -> str:
         """Render the tool item with colored bar."""
         bar = horizontal_bar_colored(self.count, self.max_count, width=12)
-        return f"{self.tool_name:<10} {bar} [cyan]{self.count:>3}[/]"
+        return f"{self.tool_name:<10} {bar} [{CORAL}]{self.count:>3}[/]"
 
 
 class ToolBreakdownPanel(Vertical):
     """Panel displaying tool usage breakdown for today."""
-
-    DEFAULT_CSS = """
-    ToolBreakdownPanel {
-        height: auto;
-        padding: 0 1;
-        margin-top: 1;
-    }
-
-    ToolBreakdownPanel > .section-title {
-        text-style: bold;
-        color: $text;
-        padding: 0;
-        margin-bottom: 1;
-    }
-
-    ToolBreakdownPanel > ToolItem {
-        height: 1;
-        padding: 0;
-    }
-
-    ToolBreakdownPanel > .no-data {
-        color: $text-muted;
-        text-style: italic;
-    }
-    """
 
     def compose(self) -> ComposeResult:
         """Compose the tool breakdown panel."""

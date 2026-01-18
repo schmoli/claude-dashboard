@@ -1,7 +1,10 @@
 """Main Textual application for Claude Dashboard."""
 
+from pathlib import Path
+
 from textual import work
 from textual.app import App, ComposeResult
+from textual.containers import Horizontal
 from textual.widgets import Footer, Static
 
 from cdash.components.tabs import DashboardTabs, OverviewTab
@@ -9,9 +12,10 @@ from cdash.data.github import RepoStats, calculate_repo_stats, fetch_workflow_ru
 from cdash.data.sessions import get_active_sessions
 from cdash.data.settings import load_settings
 from cdash.data.stats import load_stats_cache
+from cdash.theme import GREEN, create_claude_theme
 
 
-class StatusBar(Static):
+class StatusBar(Horizontal):
     """Top status bar showing app name and summary stats."""
 
     def __init__(self) -> None:
@@ -30,7 +34,7 @@ class StatusBar(Static):
         stats_widget = self.query_one("#today-stats", Static)
 
         if active_count > 0:
-            count_widget.update(f"│ {active_count} active")
+            count_widget.update(f"│ [{GREEN}]{active_count}[/] active")
         else:
             count_widget.update("")
 
@@ -44,40 +48,7 @@ class ClaudeDashApp(App):
     """Claude Code monitoring dashboard."""
 
     TITLE = "claude-dash"
-    CSS = """
-    StatusBar {
-        dock: top;
-        height: 1;
-        background: $primary;
-        color: $text;
-        padding: 0 1;
-        layout: horizontal;
-    }
-
-    #app-name {
-        text-style: bold;
-        width: auto;
-    }
-
-    #active-count {
-        width: auto;
-        margin-left: 1;
-    }
-
-    #today-stats {
-        width: auto;
-        margin-left: 1;
-    }
-
-    #main-content {
-        height: 100%;
-    }
-
-    ActiveSessionsPanel {
-        height: auto;
-        max-height: 10;
-    }
-    """
+    CSS_PATH = Path(__file__).parent / "app.tcss"
 
     BINDINGS = [
         ("q", "quit", "Quit"),
@@ -99,6 +70,10 @@ class ClaudeDashApp(App):
 
     def on_mount(self) -> None:
         """Set up the refresh timer when the app mounts."""
+        # Register and activate the Claude theme
+        self.register_theme(create_claude_theme())
+        self.theme = "claude"
+
         self._refresh_data()
         self.set_interval(self.REFRESH_INTERVAL, self._refresh_data)
 

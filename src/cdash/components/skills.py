@@ -10,13 +10,6 @@ from cdash.data.skills import PluginSkills, Skill, find_all_skills
 class SkillRow(Static):
     """Single skill row display."""
 
-    DEFAULT_CSS = """
-    SkillRow {
-        height: auto;
-        padding: 0 1;
-    }
-    """
-
     def __init__(self, skill: Skill) -> None:
         super().__init__()
         self._skill = skill
@@ -34,18 +27,6 @@ class SkillRow(Static):
 class PluginSkillsGroup(Vertical):
     """Group of skills for a plugin."""
 
-    DEFAULT_CSS = """
-    PluginSkillsGroup {
-        height: auto;
-        margin-bottom: 1;
-    }
-
-    PluginSkillsGroup > .plugin-header {
-        text-style: bold;
-        color: $text;
-    }
-    """
-
     def __init__(self, plugin_skills: PluginSkills) -> None:
         super().__init__()
         self._plugin_skills = plugin_skills
@@ -62,28 +43,6 @@ class PluginSkillsGroup(Vertical):
 
 class SkillsTab(Vertical):
     """Skills tab showing available skills grouped by plugin."""
-
-    DEFAULT_CSS = """
-    SkillsTab {
-        height: auto;
-        padding: 1;
-    }
-
-    SkillsTab > #skills-title {
-        text-style: bold;
-        margin-bottom: 1;
-    }
-
-    SkillsTab > #skills-list {
-        height: auto;
-    }
-
-    SkillsTab > #no-skills {
-        color: $text-muted;
-        text-style: italic;
-        padding: 2;
-    }
-    """
 
     def compose(self) -> ComposeResult:
         yield Static("SKILLS", id="skills-title")

@@ -6,47 +6,11 @@ from textual.app import ComposeResult
 from textual.containers import Horizontal
 from textual.widgets import Static
 
+from cdash.theme import CORAL
+
 
 class TodayHeader(Horizontal):
     """Big numbers showing today's totals and refresh info."""
-
-    DEFAULT_CSS = """
-    TodayHeader {
-        height: 3;
-        padding: 0 1;
-        margin-bottom: 1;
-    }
-
-    TodayHeader > .header-title {
-        text-style: bold;
-        color: $text;
-        width: auto;
-    }
-
-    TodayHeader > .stat-block {
-        width: auto;
-        margin-left: 2;
-    }
-
-    TodayHeader > .stat-block .stat-value {
-        color: $accent;
-        text-style: bold;
-    }
-
-    TodayHeader > .stat-block .stat-label {
-        color: $text-muted;
-    }
-
-    TodayHeader > .spacer {
-        width: 1fr;
-    }
-
-    TodayHeader > .refresh-info {
-        color: $text-muted;
-        width: auto;
-        text-align: right;
-    }
-    """
 
     def __init__(self) -> None:
         super().__init__()
@@ -89,9 +53,9 @@ class TodayHeader(Horizontal):
             active_widget = self.query_one("#active-stat", Static)
             refresh_widget = self.query_one("#refresh-info", Static)
 
-            msgs_widget.update(f"[cyan bold]{self._msgs}[/] messages")
-            tools_widget.update(f"[cyan bold]{self._tools}[/] tools")
-            active_widget.update(f"[cyan bold]{self._active}[/] active")
+            msgs_widget.update(f"[{CORAL} bold]{self._msgs}[/] messages")
+            tools_widget.update(f"[{CORAL} bold]{self._tools}[/] tools")
+            active_widget.update(f"[{CORAL} bold]{self._active}[/] active")
             refresh_widget.update(f"↻ {self._format_refresh_ago()}")
         except Exception:
             # Widget may not be mounted yet

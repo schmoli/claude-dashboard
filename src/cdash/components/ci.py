@@ -16,6 +16,7 @@ from cdash.data.github import (
     fetch_workflow_runs,
 )
 from cdash.data.settings import CdashSettings, load_settings, save_settings
+from cdash.theme import CORAL, GREEN, RED
 
 
 def format_relative_time(dt: datetime) -> str:
@@ -35,34 +36,6 @@ def format_relative_time(dt: datetime) -> str:
 
 class CIActivityPanel(Vertical):
     """Compact CI activity panel for Overview tab."""
-
-    DEFAULT_CSS = """
-    CIActivityPanel {
-        height: auto;
-        padding: 0 1;
-        margin-bottom: 1;
-    }
-
-    CIActivityPanel > .ci-header {
-        text-style: bold;
-    }
-
-    CIActivityPanel > .ci-stats {
-        height: 1;
-    }
-
-    CIActivityPanel > .ci-repos {
-        height: auto;
-        max-height: 3;
-        padding-left: 2;
-        color: $text-muted;
-    }
-
-    CIActivityPanel > .ci-hint {
-        color: $text-muted;
-        text-align: right;
-    }
-    """
 
     def __init__(self) -> None:
         super().__init__()
@@ -96,9 +69,9 @@ class CIActivityPanel(Vertical):
         try:
             stats_widget = self.query_one(".ci-stats", Static)
             stats_widget.update(
-                f"[cyan]{self._runs_today}[/] runs  "
-                f"[green]✓ {self._passed}[/] passed  "
-                f"[red]✗ {self._failed}[/] failed"
+                f"[{CORAL}]{self._runs_today}[/] runs  "
+                f"[{GREEN}]✓ {self._passed}[/] passed  "
+                f"[{RED}]✗ {self._failed}[/] failed"
             )
         except Exception:
             pass
@@ -131,13 +104,6 @@ class RepoRow(Static):
     # Fixed columns: TODAY(5) + WEEK(6) + SUCCESS(7) + LAST(12) + spacing(~10)
     FIXED_WIDTH = 40
     MIN_REPO_WIDTH = 20
-
-    DEFAULT_CSS = """
-    RepoRow {
-        height: 1;
-        padding: 0 1;
-    }
-    """
 
     def __init__(self, stats: RepoStats) -> None:
         super().__init__()
@@ -175,20 +141,13 @@ class RepoRow(Static):
 class RunRow(Static):
     """Single workflow run row."""
 
-    DEFAULT_CSS = """
-    RunRow {
-        height: 1;
-        padding: 0 1;
-    }
-    """
-
     def __init__(self, run: WorkflowRun) -> None:
         super().__init__()
         self._run = run
 
     def render(self) -> str:
         r = self._run
-        status = "[green]✓[/]" if r.is_success else "[red]✗[/]"
+        status = f"[{GREEN}]✓[/]" if r.is_success else f"[{RED}]✗[/]"
 
         # Format trigger info
         if r.pr_number:
@@ -209,58 +168,6 @@ class RunRow(Static):
 
 class CITab(Vertical):
     """Dedicated CI tab with full repo breakdown."""
-
-    DEFAULT_CSS = """
-    CITab {
-        height: auto;
-        padding: 1;
-    }
-
-    CITab > .ci-title {
-        text-style: bold;
-        margin-bottom: 1;
-    }
-
-    CITab > .ci-header-row {
-        color: $text-muted;
-        padding: 0 1;
-        margin-bottom: 0;
-    }
-
-    CITab > #repo-list {
-        height: auto;
-        max-height: 10;
-        margin-bottom: 1;
-    }
-
-    CITab > .hidden-info {
-        color: $text-muted;
-        text-style: italic;
-        padding: 0 1;
-    }
-
-    CITab > .runs-title {
-        text-style: bold;
-        margin-top: 1;
-        margin-bottom: 1;
-    }
-
-    CITab > #runs-list {
-        height: auto;
-        max-height: 8;
-    }
-
-    CITab > #loading-container {
-        height: 3;
-        align: center middle;
-    }
-
-    CITab > .status-msg {
-        color: $text-muted;
-        text-style: italic;
-        padding: 0 1;
-    }
-    """
 
     BINDINGS = [
         ("h", "toggle_hidden", "Hide/Show repos"),

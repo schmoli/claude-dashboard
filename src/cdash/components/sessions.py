@@ -5,6 +5,7 @@ from textual.containers import Vertical
 from textual.widgets import Static
 
 from cdash.data.sessions import Session, format_duration, load_all_sessions
+from cdash.theme import AMBER, GREEN
 
 
 class SessionItem(Static):
@@ -18,11 +19,11 @@ class SessionItem(Static):
         """Render the session item."""
         s = self.session
 
-        # Colored status indicators
+        # Colored status indicators using theme colors
         if s.is_active:
-            status = "[bold green]●[/]"
+            status = f"[bold {GREEN}]●[/]"
         elif s.is_idle:
-            status = "[bold yellow]●[/]"
+            status = f"[bold {AMBER}]●[/]"
         else:
             status = "[dim]○[/]"
 
@@ -49,30 +50,6 @@ class SessionItem(Static):
 
 class ActiveSessionsPanel(Vertical):
     """Panel displaying active sessions."""
-
-    DEFAULT_CSS = """
-    ActiveSessionsPanel {
-        height: auto;
-        padding: 0 1;
-    }
-
-    ActiveSessionsPanel > .section-title {
-        text-style: bold;
-        color: $text;
-        padding: 0;
-        margin-bottom: 1;
-    }
-
-    ActiveSessionsPanel > SessionItem {
-        height: 1;
-        padding: 0;
-    }
-
-    ActiveSessionsPanel > .no-sessions {
-        color: $text-muted;
-        text-style: italic;
-    }
-    """
 
     def compose(self) -> ComposeResult:
         """Compose the panel."""

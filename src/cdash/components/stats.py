@@ -49,49 +49,6 @@ class ProjectItem(Static):
 class StatsPanel(Vertical):
     """Panel displaying stats, trends, and project rankings."""
 
-    DEFAULT_CSS = """
-    StatsPanel {
-        height: auto;
-        padding: 0 1;
-        margin-top: 1;
-    }
-
-    StatsPanel > Horizontal {
-        height: auto;
-    }
-
-    StatsPanel > Horizontal > Vertical {
-        width: 1fr;
-        height: auto;
-    }
-
-    StatsPanel .section-title {
-        text-style: bold;
-        color: $text;
-        padding: 0;
-        margin-bottom: 1;
-    }
-
-    StatsPanel .trend-container {
-        width: auto;
-        min-width: 20;
-    }
-
-    StatsPanel .trend-label {
-        color: $text-muted;
-    }
-
-    StatsPanel ProjectItem {
-        height: 1;
-        padding: 0;
-    }
-
-    StatsPanel .no-data {
-        color: $text-muted;
-        text-style: italic;
-    }
-    """
-
     def compose(self) -> ComposeResult:
         """Compose the stats panel."""
         with Horizontal():
