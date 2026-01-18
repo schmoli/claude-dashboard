@@ -186,25 +186,45 @@ URL: <issue url>
 <body from gh issue view>
 
 ## Instructions
-1. Read `../../CLAUDE.md` for project conventions
-2. `pytest tests/ -v` - baseline must pass
-3. Implement fix
-4. Write/update tests
-5. `pytest tests/ -v` - must pass
-6. Commit: `<type>(<scope>): description`
-7. Create PR: `gh pr create --title "..." --body "Fixes #<number>"`
+
+**IMPORTANT: Log progress to STATUS.md after each step!**
+
+1. `echo "# Status\n\n## Progress" > STATUS.md`
+2. Read `../../CLAUDE.md` for project conventions
+3. `pytest tests/ -v` - baseline must pass
+   - Log: `echo "- [x] Baseline tests pass" >> STATUS.md`
+4. Implement fix
+   - Log: `echo "- [x] Fix implemented: <summary>" >> STATUS.md`
+5. Write/update tests
+   - Log: `echo "- [x] Tests added/updated" >> STATUS.md`
+6. `pytest tests/ -v` - must pass
+   - Log: `echo "- [x] All tests pass" >> STATUS.md`
+7. Commit: `<type>(<scope>): description`
+8. Create PR: `gh pr create --title "..." --body "Fixes #<number>"`
+   - Log: `echo "- [x] PR created" >> STATUS.md`
+
+## If Stuck
+
+If tests fail or you can't figure out the fix:
+1. Log the blocker: `echo "## Blocked\n<description>" >> STATUS.md`
+2. Include error output in STATUS.md
+3. Exit cleanly - don't spin. The human will review STATUS.md.
 ```
 
 ### Running Background Agent (Simple Tasks)
 
 ```bash
+# Use tee to capture output while streaming
 claude --dir .worktrees/123 --print "
 Read ISSUE.md for your task.
-Follow instructions in ../../CLAUDE.md.
-Run pytest, implement fix, run pytest again.
-Commit with conventional format.
-Create PR with: gh pr create --title '...' --body 'Fixes #123'
-" &
+Log progress to STATUS.md after EVERY step.
+If stuck, document blocker in STATUS.md and exit.
+" 2>&1 | tee .worktrees/123/agent.log &
+
+# Monitor progress
+tail -f .worktrees/123/STATUS.md
+# Or check agent output
+tail -f .worktrees/123/agent.log
 ```
 
 ### Running Guided Session (Complex Tasks)
@@ -218,14 +238,17 @@ echo "Run: cd .worktrees/456 && claude"
 ### Checking Status
 
 ```bash
+# Agent progress (updated by agent at each step)
+cat .worktrees/123/STATUS.md
+
+# Agent output log
+tail -f .worktrees/123/agent.log
+
 # List active worktrees
 git worktree list
 
 # Check PR status
 gh pr list --state open
-
-# View specific PR
-gh pr view --web
 ```
 
 ### Cleanup After Merge

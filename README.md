@@ -53,13 +53,18 @@ git worktree add -b toli/fix/bug-name .worktrees/123 origin/main
 ln -s ../../.venv .worktrees/123/.venv
 
 # Run background agent (simple tasks)
-claude --dir .worktrees/123 --print "Read ISSUE.md, implement, test, commit, create PR" &
+claude --dir .worktrees/123 --print "Read ISSUE.md, log to STATUS.md, implement, test, commit, PR" \
+  2>&1 | tee .worktrees/123/agent.log &
+
+# Monitor progress
+tail -f .worktrees/123/STATUS.md  # agent checkpoints
+tail -f .worktrees/123/agent.log  # full output
 
 # Or guided session (complex tasks)
 cd .worktrees/123 && claude
 
 # Check status
-git worktree list
+cat .worktrees/123/STATUS.md
 gh pr list --state open
 
 # Cleanup after merge
