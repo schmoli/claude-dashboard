@@ -114,30 +114,28 @@ class TestGetResourceStats:
             assert abs(stats.memory_percent - 1.831) < 0.01
 
 
-class TestResourceStatsWidget:
-    """Tests for the ResourceStatsWidget component."""
+class TestHostStatsInStatusBar:
+    """Tests for host stats display in StatusBar."""
 
     @pytest.mark.asyncio
-    async def test_widget_present_in_overview(self):
-        """ResourceStatsWidget is present in Overview tab."""
-        from cdash.app import ClaudeDashApp
-        from cdash.components.resources import ResourceStatsWidget
+    async def test_host_stats_in_statusbar(self):
+        """Host stats are displayed in StatusBar."""
+        from cdash.app import ClaudeDashApp, StatusBar
 
         app = ClaudeDashApp()
         async with app.run_test() as pilot:
-            widget = app.query_one(ResourceStatsWidget)
-            assert widget is not None
+            statusbar = app.query_one(StatusBar)
+            assert statusbar is not None
+            # StatusBar has host-stats widget
+            host_stats = app.query_one("#host-stats")
+            assert host_stats is not None
 
     @pytest.mark.asyncio
-    async def test_widget_has_stat_blocks(self):
-        """Widget contains CPU, memory, and process count stat blocks."""
-        from cdash.app import ClaudeDashApp
+    async def test_statusbar_update_host_stats(self):
+        """StatusBar can update host stats."""
+        from cdash.app import StatusBar
 
-        app = ClaudeDashApp()
-        async with app.run_test() as pilot:
-            cpu_stat = app.query_one("#cpu-stat")
-            mem_stat = app.query_one("#mem-stat")
-            proc_stat = app.query_one("#proc-stat")
-            assert cpu_stat is not None
-            assert mem_stat is not None
-            assert proc_stat is not None
+        statusbar = StatusBar()
+        # update_host_stats method exists and is callable
+        assert hasattr(statusbar, "update_host_stats")
+        assert callable(statusbar.update_host_stats)

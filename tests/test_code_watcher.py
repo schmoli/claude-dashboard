@@ -155,7 +155,8 @@ class TestStatusBarCodeChanged:
             with console.capture() as capture:
                 console.print(code_changed.render())
             rendered = capture.get()
-            assert "3 files changed" in rendered or "3 file" in rendered
+            # Compact format: ⟳3f(r) meaning "3 files changed, press r"
+            assert "3f" in rendered or "3 file" in rendered
 
     @pytest.mark.asyncio
     async def test_code_changed_indicator_singular(self):
@@ -175,7 +176,8 @@ class TestStatusBarCodeChanged:
             with console.capture() as capture:
                 console.print(code_changed.render())
             rendered = capture.get()
-            assert "1 file changed" in rendered or "1 file" in rendered
+            # Compact format: ⟳1f(r) meaning "1 file changed, press r"
+            assert "1f" in rendered or "1 file" in rendered
 
     @pytest.mark.asyncio
     async def test_code_changed_indicator_hides(self):

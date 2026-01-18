@@ -10,7 +10,7 @@ Screen {
 }
 
 /* ============================================
-   STATUS BAR
+   STATUS BAR (Unified dense stats row)
    ============================================ */
 
 StatusBar {
@@ -30,49 +30,26 @@ StatusBar #app-name {
 
 StatusBar #active-count {
     width: auto;
-    margin-left: 1;
     color: $success;
 }
 
 StatusBar #today-stats {
     width: auto;
-    margin-left: 1;
     color: $text-muted;
+}
+
+StatusBar #host-stats {
+    width: auto;
+    color: $text-muted;
+}
+
+StatusBar #status-refresh {
+    width: auto;
 }
 
 StatusBar #code-changed {
     width: auto;
-    margin-left: 1;
     color: $warning;
-}
-
-/* ============================================
-   TODAY HEADER (Hero Component)
-   ============================================ */
-
-TodayHeader {
-    height: 3;
-    padding: 0 1;
-    margin-bottom: 1;
-    background: $panel;
-    border: round #333333;
-}
-
-TodayHeader > .header-title {
-    text-style: bold;
-    color: $primary;
-    width: auto;
-}
-
-TodayHeader > .stat-block {
-    width: auto;
-    margin-left: 2;
-    background: $surface;
-    padding: 0 1;
-}
-
-TodayHeader > .spacer {
-    width: 1fr;
 }
 
 /* ============================================
@@ -107,103 +84,35 @@ CIHeader > .ci-header {
 
 ActiveSessionsPanel {
     height: auto;
-    padding: 1;
-    background: $panel;
-    border: round #333333;
-    margin: 0 1 1 1;
-}
-
-ActiveSessionsPanel > .section-title {
-    text-style: bold;
-    color: $secondary;
-    padding: 0;
-    margin-bottom: 1;
-}
-
-ActiveSessionsPanel > SessionItem {
-    height: 1;
     padding: 0 1;
-    background: $surface;
-    margin-bottom: 0;
-}
-
-ActiveSessionsPanel > SessionItem:hover {
     background: $panel;
+    margin: 0;
 }
 
 ActiveSessionsPanel > .no-sessions,
 SessionCardContainer > .no-sessions {
     color: $text-muted;
     text-style: italic;
-    padding: 1;
+    padding: 0 1;
 }
 
-/* Session Card Container */
+/* Session Card Container - scrollable area */
 SessionCardContainer {
     height: auto;
-    max-height: 30;
+    max-height: 20;
     padding: 0;
 }
 
-/* Session Cards */
-SessionCard {
-    height: auto;
-    padding: 1;
-    margin: 0 0 1 0;
-    background: $surface;
-    border: round #333333;
-}
-
-SessionCard:focus {
-    border: round $primary;
-}
-
-SessionCard.active {
-    border: round $success;
-}
-
-SessionCard.idle {
-    border: round $warning;
-}
-
-SessionCard > .card-header {
-    height: 1;
-    width: 100%;
-}
-
-SessionCard > .card-branch {
-    height: 1;
-    color: $text-muted;
-}
-
-SessionCard > .card-divider {
-    height: 1;
-    color: #444444;
-}
-
-SessionCard > .card-prompt {
-    height: auto;
-    max-height: 3;
-    padding: 0;
-}
-
-SessionCard > .card-tool {
-    height: 1;
-}
-
-SessionCard > .card-footer {
-    height: 1;
-    width: 100%;
-}
+/* Session Cards - styles in DEFAULT_CSS in sessions.py */
 
 /* ============================================
    COLLAPSIBLE (Stats & Trends)
    ============================================ */
 
 #stats-collapsible {
-    margin: 0 1;
+    margin: 0;
     background: $panel;
-    border: round #333333;
+    border: none;
 }
 
 #stats-collapsible > CollapsibleTitle {
@@ -428,7 +337,7 @@ DashboardTabs > TabbedContent {
 }
 
 DashboardTabs TabPane {
-    padding: 1;
+    padding: 0;
     background: $background;
 }
 

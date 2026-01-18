@@ -203,7 +203,8 @@ class RunRow(Static):
             failure_badge = f" [{RED}]{r.conclusion}[/]"
 
         repo_short = r.repo.split("/")[-1]
-        return f'{status} {repo_short:<14} {trigger:<12} "{title}"  {duration:>5}  {time}{failure_badge}'
+        left = f'{status} {repo_short:<14} {trigger:<12} "{title}"'
+        return f"{left}  {duration:>5}  {time}{failure_badge}"
 
 
 class CITab(Vertical):

@@ -5,10 +5,8 @@ from textual.containers import Center, Vertical
 from textual.widgets import Collapsible, LoadingIndicator, Static, TabbedContent, TabPane
 
 from cdash.components.ci import CIActivityPanel, CITab
-from cdash.components.header import TodayHeader
 from cdash.components.mcp import MCPServersTab
 from cdash.components.plugins import PluginsTab
-from cdash.components.resources import ResourceStatsWidget
 from cdash.components.sessions import ActiveSessionsPanel
 from cdash.components.stats import StatsPanel
 from cdash.components.tools import ToolBreakdownPanel
@@ -66,11 +64,12 @@ class LoadingScreen(Vertical):
 
 
 class OverviewContent(Vertical):
-    """Main content of the Overview tab (shown after loading)."""
+    """Main content of the Overview tab (shown after loading).
+
+    Compact layout: sessions panel + collapsible stats (header stats in StatusBar now).
+    """
 
     def compose(self) -> ComposeResult:
-        yield TodayHeader()
-        yield ResourceStatsWidget()
         yield ActiveSessionsPanel()
         with Collapsible(title="Stats & Trends", collapsed=True, id="stats-collapsible"):
             yield StatsPanel()
@@ -109,34 +108,14 @@ class OverviewTab(Vertical):
         except Exception:
             pass
 
-    def refresh_data(
-        self,
-        msgs_today: int = 0,
-        tools_today: int = 0,
-        active_count: int = 0,
-    ) -> None:
+    def refresh_data(self) -> None:
         """Refresh all panels in the overview tab.
 
-        Args:
-            msgs_today: Today's message count
-            tools_today: Today's tool count
-            active_count: Number of active sessions
+        Stats now shown in StatusBar - this just refreshes sessions and panels.
         """
         # Show content on first refresh (transition from loading)
         self.show_content()
 
-        try:
-            content = self.query_one(OverviewContent)
-            header = content.query_one(TodayHeader)
-            header.update_stats(msgs=msgs_today, tools=tools_today, active=active_count)
-            header.mark_refreshed()
-        except Exception:
-            pass
-        try:
-            content = self.query_one(OverviewContent)
-            content.query_one(ResourceStatsWidget).refresh_stats()
-        except Exception:
-            pass
         try:
             content = self.query_one(OverviewContent)
             content.query_one(ActiveSessionsPanel).refresh_sessions()

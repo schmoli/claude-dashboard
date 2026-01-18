@@ -120,11 +120,11 @@ class TestRefreshIndicatorIntegration:
             assert indicator is not None
 
     @pytest.mark.asyncio
-    async def test_header_has_refresh_indicator(self):
-        """TodayHeader contains refresh indicator."""
+    async def test_status_bar_has_refresh_indicator(self):
+        """StatusBar contains refresh indicator."""
         from cdash.app import ClaudeDashApp
 
         app = ClaudeDashApp()
         async with app.run_test() as pilot:
-            indicator = app.query_one("#refresh-info", RefreshIndicator)
+            indicator = app.query_one("#status-refresh", RefreshIndicator)
             assert indicator is not None
