@@ -8,6 +8,7 @@ from cdash.components.ci import CIActivityPanel, CITab
 from cdash.components.header import TodayHeader
 from cdash.components.mcp import MCPServersTab
 from cdash.components.plugins import PluginsTab
+from cdash.components.resources import ResourceStatsWidget
 from cdash.components.sessions import ActiveSessionsPanel
 from cdash.components.stats import StatsPanel
 from cdash.components.tools import ToolBreakdownPanel
@@ -69,6 +70,7 @@ class OverviewContent(Vertical):
 
     def compose(self) -> ComposeResult:
         yield TodayHeader()
+        yield ResourceStatsWidget()
         yield ActiveSessionsPanel()
         with Collapsible(title="Stats & Trends", collapsed=True, id="stats-collapsible"):
             yield StatsPanel()
@@ -128,6 +130,11 @@ class OverviewTab(Vertical):
             header = content.query_one(TodayHeader)
             header.update_stats(msgs=msgs_today, tools=tools_today, active=active_count)
             header.mark_refreshed()
+        except Exception:
+            pass
+        try:
+            content = self.query_one(OverviewContent)
+            content.query_one(ResourceStatsWidget).refresh_stats()
         except Exception:
             pass
         try:
