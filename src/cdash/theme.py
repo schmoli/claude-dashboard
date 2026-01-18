@@ -24,7 +24,6 @@ TAB_ICONS = {
     "plugins": "\uf03d7",  # 󰏗 package (using fallback)
     "mcp": "\uf048b",  # 󰒋 server (using fallback)
     "skills": "\uf0e7",  # lightning bolt
-    "agents": "\uf544",  # robot
     "ci": "\uf09b",  # github
 }
 
@@ -34,7 +33,6 @@ TAB_ICONS_ASCII = {
     "plugins": "⬡",
     "mcp": "◎",
     "skills": "⚡",
-    "agents": "●",
     "ci": "◈",
 }
 
