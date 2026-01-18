@@ -1,6 +1,4 @@
-"""TodayHeader widget showing big numbers and refresh info."""
-
-import time
+"""TodayHeader widget showing big numbers and liveness indicator."""
 
 from textual.app import ComposeResult
 from textual.containers import Horizontal
@@ -11,14 +9,13 @@ from cdash.theme import CORAL
 
 
 class TodayHeader(Horizontal):
-    """Big numbers showing today's totals and refresh info."""
+    """Big numbers showing today's totals and liveness dot."""
 
     def __init__(self) -> None:
         super().__init__()
         self._msgs = 0
         self._tools = 0
         self._active = 0
-        self._last_refresh = 0.0
 
     def compose(self) -> ComposeResult:
         yield Static("TODAY", classes="header-title")
@@ -43,7 +40,6 @@ class TodayHeader(Horizontal):
 
     def mark_refreshed(self) -> None:
         """Mark data as just refreshed."""
-        self._last_refresh = time.time()
         try:
             indicator = self.query_one("#refresh-info", RefreshIndicator)
             indicator.mark_refreshed()
@@ -63,14 +59,3 @@ class TodayHeader(Horizontal):
         except Exception:
             # Widget may not be mounted yet
             pass
-
-    def _format_refresh_ago(self) -> str:
-        """Format time since last refresh as human-readable."""
-        if self._last_refresh == 0:
-            return "never"
-
-        elapsed = int(time.time() - self._last_refresh)
-        if elapsed < 60:
-            return f"refreshed {elapsed}s ago"
-        mins = elapsed // 60
-        return f"refreshed {mins}m ago"

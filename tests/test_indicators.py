@@ -1,10 +1,15 @@
-"""Tests for RefreshIndicator widget."""
+"""Tests for RefreshIndicator (liveness indicator) widget."""
 
 import time
 
 import pytest
 
-from cdash.components.indicators import RefreshIndicator
+from cdash.components.indicators import (
+    ERROR_THRESHOLD,
+    WARN_THRESHOLD,
+    LivenessState,
+    RefreshIndicator,
+)
 
 
 class TestRefreshIndicator:
@@ -34,35 +39,44 @@ class TestRefreshIndicator:
         assert indicator.last_refresh <= after
 
     @pytest.mark.asyncio
-    async def test_format_never_refreshed(self):
-        """Shows ... when never refreshed."""
+    async def test_init_state_when_never_refreshed(self):
+        """Shows init state when never refreshed."""
         indicator = RefreshIndicator()
-        assert indicator._format_refresh_ago() == "..."
+        assert indicator.state == LivenessState.INIT
 
     @pytest.mark.asyncio
-    async def test_format_seconds_ago(self):
-        """Shows seconds for recent refresh."""
+    async def test_refreshing_state_after_mark(self):
+        """Shows refreshing state immediately after mark_refreshed."""
+        indicator = RefreshIndicator()
+        indicator.mark_refreshed()
+        assert indicator.state == LivenessState.REFRESHING
+
+    @pytest.mark.asyncio
+    async def test_live_state_for_recent_refresh(self):
+        """Shows live state for recent refresh."""
         indicator = RefreshIndicator()
         indicator._last_refresh = time.time() - 5
-        result = indicator._format_refresh_ago()
-        assert "s" in result
-        assert "5" in result
+        indicator._refreshing_until = 0  # Past refreshing animation
+        indicator._tick()
+        assert indicator.state == LivenessState.LIVE
 
     @pytest.mark.asyncio
-    async def test_format_minutes_ago(self):
-        """Shows minutes for older refresh."""
+    async def test_warn_state_for_stale_refresh(self):
+        """Shows warn state after missing refresh cycles."""
         indicator = RefreshIndicator()
-        indicator._last_refresh = time.time() - 120  # 2 minutes
-        result = indicator._format_refresh_ago()
-        assert "2m" in result
+        indicator._last_refresh = time.time() - (WARN_THRESHOLD + 1)
+        indicator._refreshing_until = 0
+        indicator._tick()
+        assert indicator.state == LivenessState.WARN
 
     @pytest.mark.asyncio
-    async def test_format_hours_ago(self):
-        """Shows hours for much older refresh."""
+    async def test_error_state_for_very_stale_refresh(self):
+        """Shows error state after missing many refresh cycles."""
         indicator = RefreshIndicator()
-        indicator._last_refresh = time.time() - 7200  # 2 hours
-        result = indicator._format_refresh_ago()
-        assert "2h" in result
+        indicator._last_refresh = time.time() - (ERROR_THRESHOLD + 1)
+        indicator._refreshing_until = 0
+        indicator._tick()
+        assert indicator.state == LivenessState.ERROR
 
     @pytest.mark.asyncio
     async def test_with_id(self):

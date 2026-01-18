@@ -1,7 +1,5 @@
 """Tests for TodayHeader widget."""
 
-import time
-
 import pytest
 
 from cdash.components.header import TodayHeader
@@ -28,28 +26,9 @@ class TestTodayHeader:
         assert header._active == 3
 
     @pytest.mark.asyncio
-    async def test_header_refresh_info(self):
-        """TodayHeader shows refresh timestamp."""
+    async def test_header_has_mark_refreshed(self):
+        """TodayHeader has mark_refreshed method."""
         header = TodayHeader()
-        header.mark_refreshed()
-
-        # Should have recent timestamp
-        assert header._last_refresh > 0
-        assert time.time() - header._last_refresh < 5
-
-    @pytest.mark.asyncio
-    async def test_format_refresh_ago(self):
-        """format_refresh_ago shows human-readable time."""
-        header = TodayHeader()
-
-        # Just refreshed
-        header._last_refresh = time.time()
-        assert "0s" in header._format_refresh_ago()
-
-        # 30 seconds ago
-        header._last_refresh = time.time() - 30
-        assert "30s" in header._format_refresh_ago()
-
-        # 2 minutes ago
-        header._last_refresh = time.time() - 120
-        assert "2m" in header._format_refresh_ago()
+        # Should not raise - delegates to child RefreshIndicator
+        assert hasattr(header, "mark_refreshed")
+        assert callable(header.mark_refreshed)

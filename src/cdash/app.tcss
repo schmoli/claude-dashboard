@@ -75,22 +75,11 @@ TodayHeader > .spacer {
     width: 1fr;
 }
 
-TodayHeader > .refresh-info,
-TodayHeader > RefreshIndicator {
-    color: $text-muted;
-    width: auto;
-    text-align: right;
-}
-
 /* ============================================
-   REFRESH INDICATORS
+   LIVENESS INDICATORS (Refresh dots)
    ============================================ */
 
-RefreshIndicator {
-    color: $text-muted;
-    width: auto;
-    text-align: right;
-}
+/* RefreshIndicator styles are in DEFAULT_CSS in indicators.py */
 
 .header-spacer {
     width: 1fr;
