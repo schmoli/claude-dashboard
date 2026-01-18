@@ -472,6 +472,42 @@ OverviewTab {
     background: $background;
 }
 
+OverviewContent {
+    height: auto;
+    padding: 0;
+    background: $background;
+}
+
+/* ============================================
+   LOADING SCREEN
+   ============================================ */
+
+LoadingScreen {
+    height: auto;
+    min-height: 10;
+    width: 100%;
+    align: center middle;
+    background: $background;
+}
+
+#loading-content {
+    width: auto;
+    height: auto;
+    padding: 2 4;
+}
+
+#loading-title {
+    text-align: center;
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+#loading-status {
+    text-align: center;
+    color: $text-muted;
+    margin-top: 1;
+}
+
 /* ============================================
    PLACEHOLDER TAB
    ============================================ */

@@ -3,7 +3,13 @@
 import pytest
 
 from cdash.app import ClaudeDashApp
-from cdash.components.tabs import DashboardTabs, OverviewTab, PlaceholderTab
+from cdash.components.tabs import (
+    DashboardTabs,
+    LoadingScreen,
+    OverviewContent,
+    OverviewTab,
+    PlaceholderTab,
+)
 
 
 class TestDashboardTabs:
@@ -220,3 +226,96 @@ class TestTabsRender:
             tools = overview.query_one(ToolBreakdownPanel)
             assert stats is not None
             assert tools is not None
+
+
+class TestLoadingIndicator:
+    """Tests for the loading indicator during app startup."""
+
+    @pytest.mark.asyncio
+    async def test_loading_screen_widget_exists(self):
+        """LoadingScreen widget is present in OverviewTab."""
+        app = ClaudeDashApp()
+        async with app.run_test():
+            overview = app.query_one(OverviewTab)
+            loading_screen = overview.query_one(LoadingScreen)
+            assert loading_screen is not None
+
+    @pytest.mark.asyncio
+    async def test_overview_content_widget_exists(self):
+        """OverviewContent widget is present in OverviewTab."""
+        app = ClaudeDashApp()
+        async with app.run_test():
+            overview = app.query_one(OverviewTab)
+            content = overview.query_one(OverviewContent)
+            assert content is not None
+
+    @pytest.mark.asyncio
+    async def test_loading_screen_has_title(self):
+        """LoadingScreen shows app title."""
+        app = ClaudeDashApp()
+        async with app.run_test():
+            overview = app.query_one(OverviewTab)
+            loading_screen = overview.query_one(LoadingScreen)
+            title = loading_screen.query_one("#loading-title")
+            assert title is not None
+
+    @pytest.mark.asyncio
+    async def test_loading_screen_has_indicator(self):
+        """LoadingScreen contains a LoadingIndicator widget."""
+        from textual.widgets import LoadingIndicator
+
+        app = ClaudeDashApp()
+        async with app.run_test():
+            overview = app.query_one(OverviewTab)
+            loading_screen = overview.query_one(LoadingScreen)
+            indicator = loading_screen.query_one(LoadingIndicator)
+            assert indicator is not None
+
+    @pytest.mark.asyncio
+    async def test_loading_screen_has_status_text(self):
+        """LoadingScreen shows status text."""
+        app = ClaudeDashApp()
+        async with app.run_test():
+            overview = app.query_one(OverviewTab)
+            loading_screen = overview.query_one(LoadingScreen)
+            status = loading_screen.query_one("#loading-status")
+            assert status is not None
+
+    @pytest.mark.asyncio
+    async def test_content_shown_after_refresh(self):
+        """Content is shown after refresh_data is called."""
+        app = ClaudeDashApp()
+        async with app.run_test():
+            overview = app.query_one(OverviewTab)
+            # After app mounts, refresh_data is called which should show content
+            # Since the app auto-refreshes on mount, content should be visible
+            content = overview.query_one(OverviewContent)
+            # Content should be displayed after the initial refresh
+            assert content.display is True
+
+    @pytest.mark.asyncio
+    async def test_loading_hidden_after_refresh(self):
+        """Loading screen is hidden after refresh_data is called."""
+        app = ClaudeDashApp()
+        async with app.run_test():
+            overview = app.query_one(OverviewTab)
+            # After app mounts, refresh_data is called which should hide loading
+            loading_screen = overview.query_one(LoadingScreen)
+            # Loading should be hidden after the initial refresh
+            assert loading_screen.display is False
+
+    @pytest.mark.asyncio
+    async def test_show_content_idempotent(self):
+        """Calling show_content multiple times is safe."""
+        app = ClaudeDashApp()
+        async with app.run_test():
+            overview = app.query_one(OverviewTab)
+            # Call show_content multiple times
+            overview.show_content()
+            overview.show_content()
+            overview.show_content()
+            # Should still work correctly
+            content = overview.query_one(OverviewContent)
+            loading_screen = overview.query_one(LoadingScreen)
+            assert content.display is True
+            assert loading_screen.display is False
