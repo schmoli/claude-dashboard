@@ -55,3 +55,6 @@ Thumbs.db
 
 # Local settings
 .env.local
+
+# Git worktrees for parallel development
+.worktrees/

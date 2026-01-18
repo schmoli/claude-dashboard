@@ -140,3 +140,114 @@ This stops the ralph-loop. Do NOT output the promise until iteration 8 is truly 
 - Use `async with app.run_test() as pilot:` for tests
 - `await pilot.press("q")` to simulate key presses
 - `app.query_one(Widget)` to find widgets
+
+## Parallel Development with Worktrees
+
+Use git worktrees to develop multiple issues in parallel without context switching.
+
+### Directory Structure
+
+```
+.worktrees/
+  123/          # Issue #123 worktree
+    ISSUE.md    # Generated task instructions
+    .venv -> ../../.venv  # Symlinked venv
+  456/          # Issue #456 worktree
+```
+
+### Creating a Worktree from Issue
+
+```bash
+# Fetch issue details
+gh issue view 123 --json number,title,body
+
+# Create worktree on fresh branch from origin/main
+git fetch origin main
+git worktree add -b toli/fix/session-detection .worktrees/123 origin/main
+
+# Symlink venv (faster than recreating)
+ln -s ../../.venv .worktrees/123/.venv
+
+# Generate ISSUE.md with context (see template below)
+```
+
+### ISSUE.md Template
+
+Write to `.worktrees/<num>/ISSUE.md`:
+
+```markdown
+# <type>(<scope>): <title from issue>
+
+Issue: #<number>
+Branch: toli/<type>/<slug>
+URL: <issue url>
+
+## Problem
+<body from gh issue view>
+
+## Instructions
+1. Read `../../CLAUDE.md` for project conventions
+2. `pytest tests/ -v` - baseline must pass
+3. Implement fix
+4. Write/update tests
+5. `pytest tests/ -v` - must pass
+6. Commit: `<type>(<scope>): description`
+7. Create PR: `gh pr create --title "..." --body "Fixes #<number>"`
+```
+
+### Running Background Agent (Simple Tasks)
+
+```bash
+claude --dir .worktrees/123 --print "
+Read ISSUE.md for your task.
+Follow instructions in ../../CLAUDE.md.
+Run pytest, implement fix, run pytest again.
+Commit with conventional format.
+Create PR with: gh pr create --title '...' --body 'Fixes #123'
+" &
+```
+
+### Running Guided Session (Complex Tasks)
+
+```bash
+# Set up worktree as above, then:
+echo "Worktree ready at .worktrees/456"
+echo "Run: cd .worktrees/456 && claude"
+```
+
+### Checking Status
+
+```bash
+# List active worktrees
+git worktree list
+
+# Check PR status
+gh pr list --state open
+
+# View specific PR
+gh pr view --web
+```
+
+### Cleanup After Merge
+
+```bash
+# Remove worktree and branch for merged PR
+git worktree remove .worktrees/123
+git branch -d toli/fix/session-detection
+
+# Or prune all stale worktrees
+git worktree prune
+```
+
+### Branch Naming
+
+- `toli/fix/<slug>` - bug fixes
+- `toli/feat/<slug>` - new features
+- `toli/docs/<slug>` - documentation
+- `toli/refactor/<slug>` - refactoring
+
+### PR/Issue Titles
+
+Use conventional commit format:
+- `fix(sessions): detect active sessions on macOS`
+- `feat(ci): add GitHub Actions monitoring`
