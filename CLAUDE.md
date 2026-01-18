@@ -89,9 +89,11 @@ After any code change:
 
 ## Conventions
 
+- **NEVER push directly to main** - always use branches + PRs
+- Branch protection enforced: PRs required to merge to main
 - Semantic Versioning (start at 0.1.0)
-- Conventional Commits required (also on per title)
-- Coco style branch naming: 'feat/feature-name' or 'fix/bug-description' or 'docs/plan-name'
+- Conventional Commits required (also on PR titles)
+- Branch naming: `toli/feat/feature-name`, `toli/fix/bug-description`, `toli/docs/plan-name`
 - TDD: write test first when possible
 - Keep changes small and focused
 - Commit format:
@@ -187,7 +189,9 @@ URL: <issue url>
 
 ## Instructions
 
-**IMPORTANT: Log progress to STATUS.md after each step!**
+**IMPORTANT:**
+- Log progress to STATUS.md after each step!
+- **NEVER push to main** - you're on a feature branch, create a PR!
 
 1. `echo "# Status\n\n## Progress" > STATUS.md`
 2. Read `../../CLAUDE.md` for project conventions
@@ -200,8 +204,9 @@ URL: <issue url>
 6. `pytest tests/ -v` - must pass
    - Log: `echo "- [x] All tests pass" >> STATUS.md`
 7. Commit: `<type>(<scope>): description`
-8. Create PR: `gh pr create --title "..." --body "Fixes #<number>"`
-   - Log: `echo "- [x] PR created" >> STATUS.md`
+8. Push branch: `git push -u origin HEAD`
+9. Create PR: `gh pr create --title "..." --body "Fixes #<number>"`
+   - Log: `echo "- [x] PR created: <url>" >> STATUS.md`
 
 ## If Stuck
 
