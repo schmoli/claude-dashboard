@@ -142,9 +142,90 @@ ActiveSessionsPanel > SessionItem:hover {
     background: $panel;
 }
 
-ActiveSessionsPanel > .no-sessions {
+ActiveSessionsPanel > .no-sessions,
+SessionCardContainer > .no-sessions {
     color: $text-muted;
     text-style: italic;
+    padding: 1;
+}
+
+/* Session Card Container */
+SessionCardContainer {
+    height: auto;
+    max-height: 30;
+    padding: 0;
+}
+
+/* Session Cards */
+SessionCard {
+    height: auto;
+    padding: 1;
+    margin: 0 0 1 0;
+    background: $surface;
+    border: round #333333;
+}
+
+SessionCard:focus {
+    border: round $primary;
+}
+
+SessionCard.active {
+    border: round $success;
+}
+
+SessionCard.idle {
+    border: round $warning;
+}
+
+SessionCard > .card-header {
+    height: 1;
+    width: 100%;
+}
+
+SessionCard > .card-branch {
+    height: 1;
+    color: $text-muted;
+}
+
+SessionCard > .card-divider {
+    height: 1;
+    color: #444444;
+}
+
+SessionCard > .card-prompt {
+    height: auto;
+    max-height: 3;
+    padding: 0;
+}
+
+SessionCard > .card-tool {
+    height: 1;
+}
+
+SessionCard > .card-footer {
+    height: 1;
+    width: 100%;
+}
+
+/* ============================================
+   COLLAPSIBLE (Stats & Trends)
+   ============================================ */
+
+#stats-collapsible {
+    margin: 0 1;
+    background: $panel;
+    border: round #333333;
+}
+
+#stats-collapsible > CollapsibleTitle {
+    color: $secondary;
+    text-style: bold;
+    background: $surface;
+    padding: 0 1;
+}
+
+#stats-collapsible > Contents {
+    padding: 0;
 }
 
 /* ============================================

@@ -2,7 +2,7 @@
 
 from textual.app import ComposeResult
 from textual.containers import Vertical
-from textual.widgets import Static, TabbedContent, TabPane
+from textual.widgets import Collapsible, Static, TabbedContent, TabPane
 
 from cdash.components.agents import AgentsTab
 from cdash.components.ci import CIActivityPanel, CITab
@@ -32,9 +32,10 @@ class OverviewTab(Vertical):
     def compose(self) -> ComposeResult:
         yield TodayHeader()
         yield ActiveSessionsPanel()
-        yield StatsPanel()
-        yield ToolBreakdownPanel()
-        yield CIActivityPanel()
+        with Collapsible(title="Stats & Trends", collapsed=True, id="stats-collapsible"):
+            yield StatsPanel()
+            yield ToolBreakdownPanel()
+            yield CIActivityPanel()
 
     def refresh_data(
         self,

@@ -70,6 +70,7 @@ class ClaudeDashApp(App):
     BINDINGS = [
         ("q", "quit", "Quit"),
         ("r", "relaunch", "Reload"),
+        ("s", "toggle_stats", "Stats"),
         ("1", "switch_tab('tab-overview')", "Overview"),
         ("2", "switch_tab('tab-github')", "GitHub"),
         ("3", "switch_tab('tab-plugins')", "Plugins"),
@@ -182,6 +183,16 @@ class ClaudeDashApp(App):
         """Switch to a specific tab."""
         tabs = self.query_one(DashboardTabs)
         tabs.active = tab_id
+
+    def action_toggle_stats(self) -> None:
+        """Toggle the stats collapsible panel."""
+        from textual.widgets import Collapsible
+
+        try:
+            collapsible = self.query_one("#stats-collapsible", Collapsible)
+            collapsible.collapsed = not collapsible.collapsed
+        except Exception:
+            pass
 
     async def action_quit(self) -> None:
         """Quit the application."""

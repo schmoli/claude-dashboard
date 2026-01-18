@@ -198,6 +198,8 @@ class TestTabsRender:
     @pytest.mark.asyncio
     async def test_overview_has_visible_content(self):
         """Overview tab has visible panels."""
+        from textual.widgets import Collapsible
+
         from cdash.components.sessions import ActiveSessionsPanel
         from cdash.components.stats import StatsPanel
         from cdash.components.tools import ToolBreakdownPanel
@@ -205,10 +207,16 @@ class TestTabsRender:
         app = ClaudeDashApp()
         async with app.run_test():
             overview = app.query_one(OverviewTab)
-            # All three panels should exist and have height
+            # Sessions panel should be visible
             sessions = overview.query_one(ActiveSessionsPanel)
+            assert sessions.size.height > 0
+
+            # Stats and tools are inside a collapsible (collapsed by default)
+            collapsible = overview.query_one("#stats-collapsible", Collapsible)
+            assert collapsible.collapsed is True
+
+            # Panels exist inside collapsible
             stats = overview.query_one(StatsPanel)
             tools = overview.query_one(ToolBreakdownPanel)
-            assert sessions.size.height > 0
-            assert stats.size.height > 0
-            assert tools.size.height > 0
+            assert stats is not None
+            assert tools is not None

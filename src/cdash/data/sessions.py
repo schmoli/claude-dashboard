@@ -2,7 +2,7 @@
 
 import json
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterator
 
@@ -25,6 +25,13 @@ class Session:
     current_tool: str | None
     is_active: bool
     started_at: float = 0  # timestamp of first message
+    # New fields for session cards
+    git_branch: str = ""
+    message_count: int = 0
+    tool_count: int = 0
+    recent_tools: list[str] = field(default_factory=list)  # last 5 tools
+    current_tool_input: str = ""  # file path or command
+    full_prompt: str = ""  # full first user message
 
     @property
     def is_idle(self) -> bool:
@@ -154,9 +161,15 @@ def parse_session_file(session_file: Path, project_name: str) -> Session | None:
 
         # Read the file to extract info
         prompt_preview = ""
+        full_prompt = ""
         current_tool = None
+        current_tool_input = ""
         cwd = ""
         started_at = 0.0
+        git_branch = ""
+        message_count = 0
+        tool_count = 0
+        all_tools: list[str] = []  # collect all tools for recent_tools
 
         with open(session_file, "r") as f:
             for line in f:
@@ -181,17 +194,22 @@ def parse_session_file(session_file: Path, project_name: str) -> Session | None:
                         except (ValueError, AttributeError):
                             pass
 
-                # Get prompt preview from first user message
-                if not prompt_preview and entry.get("type") == "user":
+                # Get prompt from first user message
+                if not full_prompt and entry.get("type") == "user":
                     message = entry.get("message", {})
                     content = message.get("content", "")
                     if isinstance(content, str):
-                        # Truncate to first 30 chars
+                        full_prompt = content
+                        # Truncate preview to first 50 chars
                         prompt_preview = content[:50].strip()
                         if len(content) > 50:
                             prompt_preview += "..."
 
-                # Track latest tool_use
+                # Count user messages
+                if entry.get("type") == "user":
+                    message_count += 1
+
+                # Track tool usage
                 if entry.get("type") == "assistant":
                     message = entry.get("message", {})
                     content = message.get("content", [])
@@ -199,17 +217,44 @@ def parse_session_file(session_file: Path, project_name: str) -> Session | None:
                         for item in content:
                             if isinstance(item, dict) and item.get("type") == "tool_use":
                                 tool_name = item.get("name", "")
-                                timestamp_str = entry.get("timestamp", "")
-                                if timestamp_str and tool_name:
-                                    # Parse ISO timestamp to epoch
-                                    try:
-                                        # Simple approach: use mtime as proxy
-                                        current_tool = tool_name
-                                    except Exception:
-                                        pass
+                                if tool_name:
+                                    tool_count += 1
+                                    all_tools.append(tool_name)
+                                    current_tool = tool_name
+                                    # Extract tool input for context
+                                    tool_input = item.get("input", {})
+                                    if isinstance(tool_input, dict):
+                                        # Get file_path for Read/Edit/Write
+                                        if "file_path" in tool_input:
+                                            current_tool_input = tool_input["file_path"]
+                                        # Get command for Bash
+                                        elif "command" in tool_input:
+                                            cmd = tool_input["command"]
+                                            # Truncate long commands
+                                            current_tool_input = cmd[:40] + "..." if len(cmd) > 40 else cmd
+                                        # Get pattern for Glob/Grep
+                                        elif "pattern" in tool_input:
+                                            current_tool_input = tool_input["pattern"]
+                                        else:
+                                            current_tool_input = ""
+
+                # Look for git branch in summary messages
+                if entry.get("type") == "summary":
+                    summary = entry.get("summary", "")
+                    if isinstance(summary, str) and "branch:" in summary.lower():
+                        # Try to extract branch from summary
+                        for line_text in summary.split("\n"):
+                            if "branch:" in line_text.lower():
+                                parts = line_text.split(":", 1)
+                                if len(parts) > 1:
+                                    git_branch = parts[1].strip()
+                                    break
 
         # Determine if session is active (modified in last 60 seconds)
         is_active = (time.time() - mtime) < 60
+
+        # Get last 5 tools for recent_tools display
+        recent_tools = all_tools[-5:] if all_tools else []
 
         return Session(
             session_id=session_id,
@@ -221,6 +266,12 @@ def parse_session_file(session_file: Path, project_name: str) -> Session | None:
             current_tool=current_tool if is_active else None,
             is_active=is_active,
             started_at=started_at,
+            git_branch=git_branch,
+            message_count=message_count,
+            tool_count=tool_count,
+            recent_tools=recent_tools,
+            current_tool_input=current_tool_input if is_active else "",
+            full_prompt=full_prompt,
         )
     except (OSError, PermissionError):
         return None
