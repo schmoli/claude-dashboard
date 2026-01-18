@@ -63,6 +63,49 @@ def get_projects_dir() -> Path:
     return get_claude_dir() / "projects"
 
 
+def _decode_project_path(encoded: str) -> str:
+    """Decode an encoded project path back to the original filesystem path.
+
+    Claude encodes paths by replacing / with -. We decode by finding the
+    longest valid path prefix. This correctly handles hyphenated folder names.
+
+    Args:
+        encoded: Encoded path like "-Users-toli-code-project-name"
+
+    Returns:
+        Decoded path like "/Users/toli/code/project-name"
+    """
+    # Remove leading hyphen (represents root /)
+    if encoded.startswith("-"):
+        encoded = encoded[1:]
+
+    parts = encoded.split("-")
+    if not parts:
+        return "/"
+
+    # Build path by greedily finding longest existing prefixes
+    result_parts = []
+    i = 0
+    while i < len(parts):
+        # Try joining remaining parts with hyphens to find existing path
+        # Start with single part, then try multi-part combinations
+        found = False
+        for j in range(len(parts), i, -1):
+            candidate = "-".join(parts[i:j])
+            test_path = "/" + "/".join(result_parts + [candidate])
+            if Path(test_path).exists():
+                result_parts.append(candidate)
+                i = j
+                found = True
+                break
+        if not found:
+            # No existing path found, use single part
+            result_parts.append(parts[i])
+            i += 1
+
+    return "/" + "/".join(result_parts)
+
+
 def list_projects() -> Iterator[tuple[str, Path]]:
     """List all projects with their paths.
 
@@ -76,8 +119,8 @@ def list_projects() -> Iterator[tuple[str, Path]]:
     for project_dir in projects_dir.iterdir():
         if project_dir.is_dir():
             # Convert encoded path back to readable name
-            # e.g., "-home-user-project" -> "/home/user/project"
-            name = project_dir.name.replace("-", "/", 1).replace("-", "/")
+            # e.g., "-Users-toli-code-project" -> "/Users/toli/code/project"
+            name = _decode_project_path(project_dir.name)
             yield name, project_dir
 
 

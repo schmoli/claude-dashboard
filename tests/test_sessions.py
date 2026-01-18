@@ -6,8 +6,10 @@ from pathlib import Path
 
 from cdash.data.sessions import (
     Session,
+    _decode_project_path,
     find_session_files,
     format_duration,
+    list_projects,
     parse_session_file,
 )
 
@@ -199,6 +201,75 @@ class TestIsIdle:
         assert session is not None
         assert session.is_active is False
         assert session.is_idle is False
+
+
+class TestDecodeProjectPath:
+    """Tests for project path decoding."""
+
+    def test_hyphenated_folder_preserved_when_exists(self, tmp_path, monkeypatch):
+        """Hyphenated folder names like claude-dashboard are preserved when path exists."""
+        # Create actual directory structure in tmp_path
+        # Simulate: /tmp/xxx/code/my-project
+        code_dir = tmp_path / "code"
+        code_dir.mkdir()
+        project_dir = code_dir / "my-project"
+        project_dir.mkdir()
+
+        # Create encoded name based on tmp_path structure
+        # e.g., tmp_path = /private/var/folders/.../code/my-project
+        # encoded would be: -private-var-folders-...-code-my-project
+        encoded = str(tmp_path / "code" / "my-project").replace("/", "-")
+
+        result = _decode_project_path(encoded)
+        assert result == str(tmp_path / "code" / "my-project")
+        assert "my-project" in result  # hyphen preserved
+
+    def test_falls_back_to_simple_decode_when_path_missing(self):
+        """When path doesn't exist, falls back to single-part decode."""
+        # Path that definitely doesn't exist
+        encoded = "-nonexistent-path-with-hyphens"
+        result = _decode_project_path(encoded)
+        # Falls back to treating each part separately
+        assert result == "/nonexistent/path/with/hyphens"
+
+    def test_real_path_decodes_correctly(self):
+        """Test with a path we know exists on the system."""
+        # /Users always exists on macOS
+        encoded = "-Users"
+        result = _decode_project_path(encoded)
+        assert result == "/Users"
+
+
+class TestListProjects:
+    """Tests for project listing."""
+
+    def test_lists_project_directories(self, tmp_path, monkeypatch):
+        """Lists all project directories."""
+        projects_dir = tmp_path / "projects"
+        projects_dir.mkdir()
+        (projects_dir / "-tmp-project1").mkdir()
+        (projects_dir / "-tmp-project2").mkdir()
+
+        monkeypatch.setattr(
+            "cdash.data.sessions.get_projects_dir", lambda: projects_dir
+        )
+
+        projects = list(list_projects())
+        assert len(projects) == 2
+
+    def test_skips_non_directories(self, tmp_path, monkeypatch):
+        """Skips files in projects directory."""
+        projects_dir = tmp_path / "projects"
+        projects_dir.mkdir()
+        (projects_dir / "-tmp-project").mkdir()
+        (projects_dir / "somefile.txt").touch()
+
+        monkeypatch.setattr(
+            "cdash.data.sessions.get_projects_dir", lambda: projects_dir
+        )
+
+        projects = list(list_projects())
+        assert len(projects) == 1
 
 
 class TestFormatDuration:
