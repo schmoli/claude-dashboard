@@ -45,11 +45,37 @@ class WorkflowRun:
     title: str
     created_at: datetime
     html_url: str
+    updated_at: datetime | None = None
 
     @property
     def is_success(self) -> bool:
         """Check if run was successful."""
         return self.conclusion == "success"
+
+    @property
+    def duration_seconds(self) -> int | None:
+        """Compute run duration in seconds from created_at to updated_at."""
+        if not self.updated_at:
+            return None
+        diff = self.updated_at - self.created_at
+        return int(diff.total_seconds())
+
+    @property
+    def duration_formatted(self) -> str:
+        """Return human-readable duration (e.g., '5m', '1h30m')."""
+        secs = self.duration_seconds
+        if secs is None:
+            return ""
+        if secs < 60:
+            return f"{secs}s"
+        mins = secs // 60
+        if mins < 60:
+            return f"{mins}m"
+        hours = mins // 60
+        remaining_mins = mins % 60
+        if remaining_mins:
+            return f"{hours}h{remaining_mins}m"
+        return f"{hours}h"
 
 
 @dataclass
@@ -72,6 +98,10 @@ def parse_workflow_run(repo: str, data: dict) -> WorkflowRun:
 
     created_at = datetime.fromisoformat(data["created_at"].replace("Z", "+00:00"))
 
+    updated_at = None
+    if data.get("updated_at"):
+        updated_at = datetime.fromisoformat(data["updated_at"].replace("Z", "+00:00"))
+
     return WorkflowRun(
         repo=repo,
         run_id=data["id"],
@@ -83,6 +113,7 @@ def parse_workflow_run(repo: str, data: dict) -> WorkflowRun:
         title=data.get("display_title", ""),
         created_at=created_at,
         html_url=data.get("html_url", ""),
+        updated_at=updated_at,
     )
 
 

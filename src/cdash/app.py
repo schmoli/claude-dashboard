@@ -71,11 +71,10 @@ class ClaudeDashApp(App):
         ("q", "quit", "Quit"),
         ("r", "relaunch", "Reload"),
         ("1", "switch_tab('tab-overview')", "Overview"),
-        ("2", "switch_tab('tab-plugins')", "Plugins"),
-        ("3", "switch_tab('tab-mcp')", "MCP"),
-        ("4", "switch_tab('tab-skills')", "Skills"),
+        ("2", "switch_tab('tab-github')", "GitHub"),
+        ("3", "switch_tab('tab-plugins')", "Plugins"),
+        ("4", "switch_tab('tab-mcp')", "MCP"),
         ("5", "switch_tab('tab-agents')", "Agents"),
-        ("6", "switch_tab('tab-ci')", "CI"),
     ]
 
     # Refresh interval in seconds
