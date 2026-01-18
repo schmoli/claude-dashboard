@@ -325,6 +325,129 @@ class TestFormatDuration:
         assert result == "1d"
 
 
+class TestNewSessionFields:
+    """Tests for the new session card fields."""
+
+    def test_message_count(self, tmp_path: Path):
+        """Counts user messages correctly."""
+        session_file = tmp_path / "test.jsonl"
+        entries = [
+            {"type": "user", "message": {"content": "First"}},
+            {"type": "assistant", "message": {"content": "Response"}},
+            {"type": "user", "message": {"content": "Second"}},
+            {"type": "assistant", "message": {"content": "Response 2"}},
+            {"type": "user", "message": {"content": "Third"}},
+        ]
+        with open(session_file, "w") as f:
+            for entry in entries:
+                f.write(json.dumps(entry) + "\n")
+
+        session = parse_session_file(session_file, "project")
+        assert session.message_count == 3
+
+    def test_tool_count(self, tmp_path: Path):
+        """Counts tool calls correctly."""
+        session_file = tmp_path / "test.jsonl"
+        entries = [
+            {"type": "user", "message": {"content": "Do stuff"}},
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [
+                        {"type": "tool_use", "name": "Read", "input": {"file_path": "/a"}},
+                        {"type": "tool_use", "name": "Edit", "input": {"file_path": "/b"}},
+                    ]
+                },
+            },
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "ls"}}]
+                },
+            },
+        ]
+        with open(session_file, "w") as f:
+            for entry in entries:
+                f.write(json.dumps(entry) + "\n")
+
+        session = parse_session_file(session_file, "project")
+        assert session.tool_count == 3
+
+    def test_recent_tools(self, tmp_path: Path):
+        """Gets last 5 tools used."""
+        session_file = tmp_path / "test.jsonl"
+        entries = [{"type": "user", "message": {"content": "Do stuff"}}]
+        # Add 7 tool calls
+        for i, tool in enumerate(["Read", "Edit", "Bash", "Glob", "Grep", "Read", "Write"]):
+            entries.append({
+                "type": "assistant",
+                "message": {"content": [{"type": "tool_use", "name": tool, "input": {}}]},
+            })
+        with open(session_file, "w") as f:
+            for entry in entries:
+                f.write(json.dumps(entry) + "\n")
+
+        session = parse_session_file(session_file, "project")
+        assert session.recent_tools == ["Bash", "Glob", "Grep", "Read", "Write"]  # last 5
+
+    def test_current_tool_input_file_path(self, tmp_path: Path):
+        """Extracts file_path from Read/Edit/Write tools."""
+        session_file = tmp_path / "test.jsonl"
+        entries = [
+            {"type": "user", "message": {"content": "Read file"}},
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [
+                        {"type": "tool_use", "name": "Read", "input": {"file_path": "/src/main.py"}}
+                    ]
+                },
+            },
+        ]
+        with open(session_file, "w") as f:
+            for entry in entries:
+                f.write(json.dumps(entry) + "\n")
+
+        session = parse_session_file(session_file, "project")
+        assert session.current_tool_input == "/src/main.py"
+
+    def test_current_tool_input_command(self, tmp_path: Path):
+        """Extracts command from Bash tool."""
+        session_file = tmp_path / "test.jsonl"
+        entries = [
+            {"type": "user", "message": {"content": "Run tests"}},
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [
+                        {"type": "tool_use", "name": "Bash", "input": {"command": "pytest tests/ -v"}}
+                    ]
+                },
+            },
+        ]
+        with open(session_file, "w") as f:
+            for entry in entries:
+                f.write(json.dumps(entry) + "\n")
+
+        session = parse_session_file(session_file, "project")
+        assert session.current_tool_input == "pytest tests/ -v"
+
+    def test_full_prompt(self, tmp_path: Path):
+        """Stores full first user message."""
+        session_file = tmp_path / "test.jsonl"
+        long_prompt = "This is a very long prompt " * 10  # ~270 chars
+        entries = [
+            {"type": "user", "message": {"content": long_prompt}},
+        ]
+        with open(session_file, "w") as f:
+            for entry in entries:
+                f.write(json.dumps(entry) + "\n")
+
+        session = parse_session_file(session_file, "project")
+        assert session.full_prompt == long_prompt
+        assert len(session.prompt_preview) <= 53  # 50 + "..."
+
+
 class TestFormatProjectDisplay:
     """Tests for format_project_display handling worktrees."""
 
