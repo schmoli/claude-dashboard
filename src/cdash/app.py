@@ -146,7 +146,8 @@ class ClaudeDashApp(App):
         self.register_theme(create_claude_theme())
         self.theme = "claude"
 
-        self._refresh_data()
+        # Defer first refresh to allow loading screen to render first
+        self.set_timer(0.1, self._refresh_data)
         self.set_interval(self.REFRESH_INTERVAL, self._refresh_data)
 
     def _refresh_data(self) -> None:

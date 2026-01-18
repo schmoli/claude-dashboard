@@ -183,6 +183,8 @@ class TestTabsRender:
     @pytest.mark.asyncio
     async def test_overview_has_visible_content(self):
         """Overview tab has visible panels."""
+        import asyncio
+
         from textual.widgets import Collapsible
 
         from cdash.components.sessions import ActiveSessionsPanel
@@ -191,6 +193,8 @@ class TestTabsRender:
 
         app = ClaudeDashApp()
         async with app.run_test():
+            # Wait for loading timer to complete
+            await asyncio.sleep(0.15)
             overview = app.query_one(OverviewTab)
             # Sessions panel should be visible
             sessions = overview.query_one(ActiveSessionsPanel)
@@ -263,23 +267,32 @@ class TestLoadingIndicator:
     @pytest.mark.asyncio
     async def test_content_shown_after_refresh(self):
         """Content is shown after refresh_data is called."""
+        import asyncio
+
         app = ClaudeDashApp()
         async with app.run_test():
             overview = app.query_one(OverviewTab)
-            # After app mounts, refresh_data is called which should show content
-            # Since the app auto-refreshes on mount, content should be visible
             content = overview.query_one(OverviewContent)
-            # Content should be displayed after the initial refresh
+            # Initially content is hidden (loading screen visible)
+            assert content.display is False
+            # Wait for the delayed refresh timer (0.1s) plus buffer
+            await asyncio.sleep(0.15)
+            # Content should now be displayed after the initial refresh
             assert content.display is True
 
     @pytest.mark.asyncio
     async def test_loading_hidden_after_refresh(self):
         """Loading screen is hidden after refresh_data is called."""
+        import asyncio
+
         app = ClaudeDashApp()
         async with app.run_test():
             overview = app.query_one(OverviewTab)
-            # After app mounts, refresh_data is called which should hide loading
             loading_screen = overview.query_one(LoadingScreen)
+            # Initially loading screen is visible
+            assert loading_screen.display is True
+            # Wait for the delayed refresh timer (0.1s) plus buffer
+            await asyncio.sleep(0.15)
             # Loading should be hidden after the initial refresh
             assert loading_screen.display is False
 
