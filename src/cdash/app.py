@@ -1,5 +1,6 @@
 """Main Textual application for Claude Dashboard."""
 
+import time
 from pathlib import Path
 
 from textual import work
@@ -8,11 +9,12 @@ from textual.containers import Horizontal
 from textual.widgets import Footer, Static
 
 from cdash.components.tabs import DashboardTabs, OverviewTab
+from cdash.data.code_watcher import check_code_changes, get_repo_root, relaunch_app
 from cdash.data.github import RepoStats, calculate_repo_stats, fetch_workflow_runs
 from cdash.data.sessions import get_active_sessions
 from cdash.data.settings import load_settings
 from cdash.data.stats import load_stats_cache
-from cdash.theme import GREEN, create_claude_theme
+from cdash.theme import AMBER, GREEN, create_claude_theme
 
 
 class StatusBar(Horizontal):
@@ -26,6 +28,7 @@ class StatusBar(Horizontal):
         yield Static("claude-dash", id="app-name")
         yield Static("", id="active-count")
         yield Static("", id="today-stats")
+        yield Static("", id="code-changed")
 
     def update_stats(self, active_count: int, msgs_today: int = 0, tools_today: int = 0) -> None:
         """Update the stats display."""
@@ -43,6 +46,20 @@ class StatusBar(Horizontal):
         else:
             stats_widget.update("")
 
+    def show_code_changed(self, changed: bool, file_count: int = 0) -> None:
+        """Show/hide the code changed indicator.
+
+        Args:
+            changed: Whether code has changed since launch.
+            file_count: Number of changed files.
+        """
+        widget = self.query_one("#code-changed", Static)
+        if changed:
+            plural = "s" if file_count != 1 else ""
+            widget.update(f"│ [{AMBER}]⟳ {file_count} file{plural} changed (r)[/]")
+        else:
+            widget.update("")
+
 
 class ClaudeDashApp(App):
     """Claude Code monitoring dashboard."""
@@ -52,6 +69,7 @@ class ClaudeDashApp(App):
 
     BINDINGS = [
         ("q", "quit", "Quit"),
+        ("r", "relaunch", "Reload"),
         ("1", "switch_tab('tab-overview')", "Overview"),
         ("2", "switch_tab('tab-plugins')", "Plugins"),
         ("3", "switch_tab('tab-mcp')", "MCP"),
@@ -62,6 +80,12 @@ class ClaudeDashApp(App):
 
     # Refresh interval in seconds
     REFRESH_INTERVAL = 3.0  # Fast refresh for live feel
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._start_time = time.time()
+        self._repo_root = get_repo_root()
+        self._code_changed = False
 
     def compose(self) -> ComposeResult:
         yield StatusBar()
@@ -95,6 +119,11 @@ class ClaudeDashApp(App):
 
         active_count = len(active_sessions)
         status_bar.update_stats(active_count, msgs_today, tools_today)
+
+        # Check for code changes
+        change_status = check_code_changes(self._start_time, self._repo_root)
+        self._code_changed = change_status.has_changes
+        status_bar.show_code_changed(change_status.has_changes, len(change_status.changed_files))
 
         # Update overview with local stats (CI fetched async)
         try:
@@ -158,3 +187,9 @@ class ClaudeDashApp(App):
     async def action_quit(self) -> None:
         """Quit the application."""
         self.exit(0)
+
+    async def action_relaunch(self) -> None:
+        """Relaunch the application to pick up code changes."""
+        # Exit cleanly then relaunch
+        self.exit(0)
+        relaunch_app()
