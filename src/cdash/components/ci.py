@@ -4,10 +4,11 @@ from datetime import datetime, timezone
 
 from textual import work
 from textual.app import ComposeResult
-from textual.containers import Center, Vertical
+from textual.containers import Center, Horizontal, Vertical
 from textual.widgets import LoadingIndicator, Static
 from textual.worker import Worker
 
+from cdash.components.indicators import RefreshIndicator
 from cdash.data.github import (
     RepoStats,
     WorkflowRun,
@@ -34,6 +35,15 @@ def format_relative_time(dt: datetime) -> str:
     return f"{days}d ago"
 
 
+class CIHeader(Horizontal):
+    """Header with title and refresh indicator."""
+
+    def compose(self) -> ComposeResult:
+        yield Static("CI ACTIVITY (today)", classes="ci-header")
+        yield Static("", classes="header-spacer")
+        yield RefreshIndicator(id="ci-refresh")
+
+
 class CIActivityPanel(Vertical):
     """Compact CI activity panel for Overview tab."""
 
@@ -45,7 +55,7 @@ class CIActivityPanel(Vertical):
         self._top_repos: list[RepoStats] = []
 
     def compose(self) -> ComposeResult:
-        yield Static("CI ACTIVITY (today)", classes="ci-header")
+        yield CIHeader()
         yield Static("", classes="ci-stats")
         yield Static("", classes="ci-repos")
         yield Static("[6: CI tab]", classes="ci-hint")
@@ -56,6 +66,12 @@ class CIActivityPanel(Vertical):
         self._passed = passed
         self._failed = failed
         self._refresh_display()
+        # Mark refresh indicator
+        try:
+            indicator = self.query_one("#ci-refresh", RefreshIndicator)
+            indicator.mark_refreshed()
+        except Exception:
+            pass
 
     def update_repos(self, stats: list[RepoStats]) -> None:
         """Update top repos list."""

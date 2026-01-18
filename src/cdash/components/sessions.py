@@ -1,9 +1,10 @@
 """Active sessions widget for displaying Claude Code sessions."""
 
 from textual.app import ComposeResult
-from textual.containers import Vertical
+from textual.containers import Horizontal, Vertical
 from textual.widgets import Static
 
+from cdash.components.indicators import RefreshIndicator
 from cdash.data.sessions import Session, format_duration, load_all_sessions
 from cdash.theme import AMBER, GREEN
 
@@ -48,12 +49,21 @@ class SessionItem(Static):
         return f'{status} {project_display:<16} "{preview}" {tool} {duration}'
 
 
+class SessionsHeader(Horizontal):
+    """Header with title and refresh indicator."""
+
+    def compose(self) -> ComposeResult:
+        yield Static("ACTIVE SESSIONS", classes="section-title")
+        yield Static("", classes="header-spacer")
+        yield RefreshIndicator(id="sessions-refresh")
+
+
 class ActiveSessionsPanel(Vertical):
     """Panel displaying active sessions."""
 
     def compose(self) -> ComposeResult:
         """Compose the panel."""
-        yield Static("ACTIVE SESSIONS", classes="section-title")
+        yield SessionsHeader()
         yield from self._build_session_items()
 
     def _build_session_items(self) -> list[Static]:
@@ -88,3 +98,10 @@ class ActiveSessionsPanel(Vertical):
         # Add new items
         for item in self._build_session_items():
             self.mount(item)
+
+        # Mark refresh indicator
+        try:
+            indicator = self.query_one("#sessions-refresh", RefreshIndicator)
+            indicator.mark_refreshed()
+        except Exception:
+            pass

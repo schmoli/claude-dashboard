@@ -1,9 +1,10 @@
 """Tool breakdown widget for displaying tool usage statistics."""
 
 from textual.app import ComposeResult
-from textual.containers import Vertical
+from textual.containers import Horizontal, Vertical
 from textual.widgets import Static
 
+from cdash.components.indicators import RefreshIndicator
 from cdash.data.tools import get_tool_usage_for_date
 from cdash.theme import BLUE, CORAL, TEXT_MUTED
 
@@ -51,12 +52,21 @@ class ToolItem(Static):
         return f"{self.tool_name:<10} {bar} [{CORAL}]{self.count:>3}[/]"
 
 
+class ToolsHeader(Horizontal):
+    """Header with title and refresh indicator."""
+
+    def compose(self) -> ComposeResult:
+        yield Static("TOOL BREAKDOWN (today)", classes="section-title")
+        yield Static("", classes="header-spacer")
+        yield RefreshIndicator(id="tools-refresh")
+
+
 class ToolBreakdownPanel(Vertical):
     """Panel displaying tool usage breakdown for today."""
 
     def compose(self) -> ComposeResult:
         """Compose the tool breakdown panel."""
-        yield Static("TOOL BREAKDOWN (today)", classes="section-title")
+        yield ToolsHeader()
         yield from self._build_tool_items()
 
     def _build_tool_items(self) -> list[Static]:
@@ -87,3 +97,10 @@ class ToolBreakdownPanel(Vertical):
         # Add new items
         for item in self._build_tool_items():
             self.mount(item)
+
+        # Mark refresh indicator
+        try:
+            indicator = self.query_one("#tools-refresh", RefreshIndicator)
+            indicator.mark_refreshed()
+        except Exception:
+            pass

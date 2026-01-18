@@ -6,6 +6,7 @@ from textual.app import ComposeResult
 from textual.containers import Horizontal
 from textual.widgets import Static
 
+from cdash.components.indicators import RefreshIndicator
 from cdash.theme import CORAL
 
 
@@ -25,7 +26,7 @@ class TodayHeader(Horizontal):
         yield Static("", id="tools-stat", classes="stat-block")
         yield Static("", id="active-stat", classes="stat-block")
         yield Static("", classes="spacer")
-        yield Static("", id="refresh-info", classes="refresh-info")
+        yield RefreshIndicator(id="refresh-info")
 
     def update_stats(self, msgs: int = 0, tools: int = 0, active: int = 0) -> None:
         """Update the displayed stats.
@@ -43,7 +44,11 @@ class TodayHeader(Horizontal):
     def mark_refreshed(self) -> None:
         """Mark data as just refreshed."""
         self._last_refresh = time.time()
-        self._update_display()
+        try:
+            indicator = self.query_one("#refresh-info", RefreshIndicator)
+            indicator.mark_refreshed()
+        except Exception:
+            pass
 
     def _update_display(self) -> None:
         """Update all display widgets."""
@@ -51,12 +56,10 @@ class TodayHeader(Horizontal):
             msgs_widget = self.query_one("#msgs-stat", Static)
             tools_widget = self.query_one("#tools-stat", Static)
             active_widget = self.query_one("#active-stat", Static)
-            refresh_widget = self.query_one("#refresh-info", Static)
 
             msgs_widget.update(f"[{CORAL} bold]{self._msgs}[/] messages")
             tools_widget.update(f"[{CORAL} bold]{self._tools}[/] tools")
             active_widget.update(f"[{CORAL} bold]{self._active}[/] active")
-            refresh_widget.update(f"↻ {self._format_refresh_ago()}")
         except Exception:
             # Widget may not be mounted yet
             pass

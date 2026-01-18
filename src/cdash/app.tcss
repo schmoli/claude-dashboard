@@ -75,10 +75,41 @@ TodayHeader > .spacer {
     width: 1fr;
 }
 
-TodayHeader > .refresh-info {
+TodayHeader > .refresh-info,
+TodayHeader > RefreshIndicator {
     color: $text-muted;
     width: auto;
     text-align: right;
+}
+
+/* ============================================
+   REFRESH INDICATORS
+   ============================================ */
+
+RefreshIndicator {
+    color: $text-muted;
+    width: auto;
+    text-align: right;
+}
+
+.header-spacer {
+    width: 1fr;
+}
+
+/* Panel header layouts */
+SessionsHeader,
+ToolsHeader,
+CIHeader {
+    height: 1;
+    width: 100%;
+}
+
+SessionsHeader > .section-title,
+ToolsHeader > .section-title,
+CIHeader > .ci-header {
+    text-style: bold;
+    color: $secondary;
+    width: auto;
 }
 
 /* ============================================
