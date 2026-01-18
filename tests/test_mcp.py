@@ -177,21 +177,7 @@ class TestLoadMCPServers:
 class TestMCPServersTab:
     """Tests for MCPServersTab UI component."""
 
-    @pytest.mark.asyncio
-    async def test_mcp_tab_present(self):
-        """MCP Servers tab exists in app."""
-        app = ClaudeDashApp()
-        async with app.run_test() as pilot:
-            await pilot.press("3")  # Switch to MCP Servers tab
-            mcp_tab = app.query_one(MCPServersTab)
-            assert mcp_tab is not None
-
-    @pytest.mark.asyncio
-    async def test_mcp_tab_has_title(self):
-        """MCP Servers tab has title."""
-        app = ClaudeDashApp()
-        async with app.run_test() as pilot:
-            await pilot.press("3")
-            mcp_tab = app.query_one(MCPServersTab)
-            title = mcp_tab.query_one("#mcp-title")
-            assert "MCP SERVERS" in title.render().plain
+    def test_mcp_tab_can_be_created(self):
+        """MCPServersTab widget can be instantiated."""
+        tab = MCPServersTab()
+        assert tab is not None

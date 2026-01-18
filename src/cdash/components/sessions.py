@@ -1,4 +1,6 @@
-"""Active sessions widget for displaying Claude Code sessions."""
+"""Active sessions panel with spacious multi-line cards."""
+
+import time
 
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical, VerticalScroll
@@ -7,84 +9,39 @@ from textual.widgets import Static
 
 from cdash.components.indicators import RefreshIndicator
 from cdash.data.sessions import Session, format_duration, load_all_sessions
-from cdash.theme import AMBER, GREEN, TEXT_MUTED
+from cdash.theme import AMBER, CORAL, GREEN, TEXT_MUTED
 
 
 def format_project_display(project_name: str | None) -> str:
-    """Format project name for display, handling worktrees.
-
-    For worktrees like '/path/to/project/.worktrees/8', returns 'project#8'.
-    For regular paths like '/path/to/project', returns 'project'.
-    """
+    """Format project name for display, handling worktrees."""
     if not project_name:
         return "unknown"
-
     if "/.worktrees/" in project_name:
         parts = project_name.split("/.worktrees/")
         parent = parts[0].split("/")[-1]
         worktree = parts[1].split("/")[0]
         return f"{parent}#{worktree}"
-
     return project_name.split("/")[-1]
 
 
-class SessionItem(Static):
-    """A single session item in the list (legacy, kept for compatibility)."""
+class SessionCard(Static):
+    """Multi-line session card that updates in-place (no flashing).
 
-    def __init__(self, session: Session) -> None:
-        super().__init__()
-        self.session = session
-
-    def render(self) -> str:
-        """Render the session item."""
-        s = self.session
-
-        # Colored status indicators using theme colors
-        if s.is_active:
-            status = f"[bold {GREEN}]●[/]"
-        elif s.is_idle:
-            status = f"[bold {AMBER}]●[/]"
-        else:
-            status = "[dim]○[/]"
-
-        # Project name (handles worktrees)
-        project_display = format_project_display(s.project_name)
-
-        # Truncate prompt preview
-        preview = s.prompt_preview[:25] if s.prompt_preview else ""
-        if len(s.prompt_preview) > 25:
-            preview += "..."
-
-        # Tool indicator (only for active sessions)
-        tool = f"⚙ {s.current_tool}" if s.current_tool else ""
-
-        # Duration for active/idle sessions
-        duration = ""
-        if s.is_active or s.is_idle:
-            dur = format_duration(s.started_at)
-            if dur:
-                duration = f"({dur})"
-
-        return f'{status} {project_display:<16} "{preview}" {tool} {duration}'
-
-
-class SessionCard(Widget, can_focus=True):
-    """Ultra-compact session card - 2 lines max.
-
-    Line 1: ● project@branch ACT ⏱5m 12m/48t ⚙ Tool
-    Line 2: "prompt preview..."
+    Layout (3 lines):
+    ┌─────────────────────────────────────────────────────────────────┐
+    │ ● project-name          ACT   ⏱29m   68/58                      │
+    │   ⚙ Bash                                                        │
+    │   "Implement the following plan: # k9s-Style Dashboard..."      │
+    └─────────────────────────────────────────────────────────────────┘
     """
 
     DEFAULT_CSS = """
     SessionCard {
         height: auto;
         padding: 0 1;
-        margin: 0;
+        margin-bottom: 1;
         background: $surface;
         border-left: thick $surface;
-    }
-    SessionCard:focus {
-        border-left: thick $primary;
     }
     SessionCard.active {
         border-left: thick $success;
@@ -92,86 +49,219 @@ class SessionCard(Widget, can_focus=True):
     SessionCard.idle {
         border-left: thick $warning;
     }
-    SessionCard > .card-line {
-        height: 1;
-        width: 100%;
-    }
     """
 
-    def __init__(self, session: Session) -> None:
-        super().__init__()
-        self.session = session
-        if session.is_active:
+    def __init__(self, session: Session, card_id: str) -> None:
+        super().__init__(id=card_id)
+        self._session = session
+        self._update_classes()
+
+    def _update_classes(self) -> None:
+        """Update CSS classes based on session state."""
+        self.remove_class("active", "idle")
+        if self._session.is_active:
             self.add_class("active")
-        elif session.is_idle:
+        elif self._session.is_idle:
             self.add_class("idle")
 
-    def compose(self) -> ComposeResult:
-        """Build ultra-compact 2-line layout."""
-        # Line 1: status + project + badge + duration + stats + tool
-        yield Static(self._render_main_line(), classes="card-line")
-        # Line 2: prompt only
-        yield Static(self._format_prompt(), classes="card-line")
+    def update_session(self, session: Session) -> None:
+        """Update card with new session data (in-place, no remount)."""
+        self._session = session
+        self._update_classes()
+        self.refresh()  # Re-render
 
-    def _render_main_line(self) -> str:
-        """Render single dense line: ● project@br ACT ⏱5m 12m/48t ⚙Tool."""
-        import time
+    def render(self) -> str:
+        """Render 3-line card content."""
+        s = self._session
 
-        s = self.session
-
-        # Status indicator + badge
+        # Line 1: status indicator + project + badge + duration + stats
         if s.is_active:
             status = f"[bold {GREEN}]●[/]"
             badge = f"[{GREEN}]ACT[/]"
         elif s.is_idle:
             status = f"[bold {AMBER}]◐[/]"
             idle_mins = int((time.time() - s.last_modified) // 60)
-            badge = f"[{AMBER}]{idle_mins}m[/]"
+            badge = f"[{AMBER}]{idle_mins}m idle[/]"
         else:
             status = "[dim]○[/]"
             badge = ""
 
-        # Project name + branch (truncated)
-        project_display = format_project_display(s.project_name)
-        if len(project_display) > 16:
-            project_display = project_display[:14] + ".."
+        project = format_project_display(s.project_name)
         if s.git_branch:
-            branch = s.git_branch[:8]
-            project_display += f"[{TEXT_MUTED}]@{branch}[/]"
+            project += f"[{TEXT_MUTED}]@{s.git_branch[:12]}[/]"
 
-        # Duration
         dur = format_duration(s.started_at)
         duration = f"⏱{dur}" if dur else ""
+        stats = f"[{TEXT_MUTED}]{s.message_count}m/{s.tool_count}t[/]"
 
-        # Stats ultra-compact
-        stats = f"[{TEXT_MUTED}]{s.message_count}/{s.tool_count}[/]"
+        line1 = f"{status} [bold]{project}[/]  {badge}  {duration}  {stats}"
 
-        # Current tool (inline, short)
-        tool = ""
+        # Line 2: current tool (if any)
         if s.current_tool:
-            tool_name = s.current_tool[:10] if len(s.current_tool) > 10 else s.current_tool
-            tool = f"[bold]⚙{tool_name}[/]"
+            tool_input = ""
+            if s.current_tool_input:
+                inp = s.current_tool_input
+                if len(inp) > 50:
+                    inp = inp[:47] + "..."
+                tool_input = f" [{TEXT_MUTED}]{inp}[/]"
+            line2 = f"  [{CORAL}]⚙ {s.current_tool}[/]{tool_input}"
+        else:
+            line2 = ""
 
-        # Assemble
-        parts = [f"{status} [bold]{project_display}[/]", badge, duration, stats, tool]
-        return " ".join(p for p in parts if p)
+        # Line 3: prompt preview
+        if s.full_prompt:
+            prompt = s.full_prompt.replace("\n", " ").strip()
+            if len(prompt) > 70:
+                prompt = prompt[:67] + "..."
+            line3 = f'  [{TEXT_MUTED}]"{prompt}"[/]'
+        else:
+            line3 = f"  [{TEXT_MUTED}](no prompt)[/]"
 
-    def _format_prompt(self) -> str:
-        """Format single-line prompt preview (compact)."""
+        # Combine lines
+        lines = [line1]
+        if line2:
+            lines.append(line2)
+        lines.append(line3)
+        return "\n".join(lines)
+
+
+class SessionsPanel(Vertical):
+    """Main sessions panel with spacious multi-line cards.
+
+    Uses in-place updates to avoid flashing on refresh.
+    """
+
+    DEFAULT_CSS = """
+    SessionsPanel {
+        height: 1fr;
+        padding: 0 1;
+        background: $background;
+    }
+    SessionsPanel > .section-title {
+        text-align: center;
+        color: $secondary;
+        text-style: bold;
+        height: 1;
+        margin-bottom: 1;
+    }
+    SessionsPanel > VerticalScroll {
+        height: 1fr;
+    }
+    SessionsPanel > .no-sessions {
+        text-align: center;
+        color: $text-muted;
+        text-style: italic;
+        padding: 2;
+    }
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._cards: dict[str, SessionCard] = {}
+
+    def compose(self) -> ComposeResult:
+        yield Static("── sessions(all)[0] ──", id="section-title", classes="section-title")
+        yield VerticalScroll(id="cards-container")
+
+    def on_mount(self) -> None:
+        """Initial load."""
+        self.refresh_sessions()
+
+    def refresh_sessions(self) -> None:
+        """Refresh sessions with in-place card updates (no flashing)."""
+        sessions = load_all_sessions()
+
+        # Filter to active and idle only
+        active = [s for s in sessions if s.is_active]
+        idle = [s for s in sessions if s.is_idle]
+        combined = active + idle
+
+        # Update title
+        try:
+            title = self.query_one("#section-title", Static)
+            if active:
+                title.update(f"── sessions(active)[{len(active)}] ──")
+            elif combined:
+                title.update(f"── sessions(idle)[{len(combined)}] ──")
+            else:
+                title.update("── sessions(none)[0] ──")
+        except Exception:
+            pass
+
+        try:
+            container = self.query_one("#cards-container", VerticalScroll)
+        except Exception:
+            return
+
+        # Build set of current session IDs
+        current_ids = {s.session_id for s in combined}
+        existing_ids = set(self._cards.keys())
+
+        # Remove cards for sessions that no longer exist
+        for sid in existing_ids - current_ids:
+            if sid in self._cards:
+                self._cards[sid].remove()
+                del self._cards[sid]
+
+        # Update or create cards
+        for i, session in enumerate(combined):
+            sid = session.session_id
+            if sid in self._cards:
+                # Update existing card in-place
+                self._cards[sid].update_session(session)
+            else:
+                # Create new card
+                card = SessionCard(session, card_id=f"card-{sid}")
+                self._cards[sid] = card
+                container.mount(card)
+
+        # Handle empty state
+        if not combined and not self._cards:
+            try:
+                container.query_one(".no-sessions")
+            except Exception:
+                container.mount(Static("No active sessions", classes="no-sessions"))
+        else:
+            # Remove empty state message if sessions exist
+            for widget in container.query(".no-sessions"):
+                widget.remove()
+
+
+# ============================================================================
+# Legacy classes kept for backwards compatibility with existing tests
+# ============================================================================
+
+
+class SessionItem(Static):
+    """Legacy session item."""
+
+    def __init__(self, session: Session) -> None:
+        super().__init__()
+        self.session = session
+
+    def render(self) -> str:
         s = self.session
-        if not s.full_prompt:
-            return f"[{TEXT_MUTED}](no prompt)[/]"
-
-        # Single line, ~60 chars
-        prompt = s.full_prompt.replace("\n", " ").strip()
-        if len(prompt) > 60:
-            prompt = prompt[:57] + "..."
-
-        return f'[{TEXT_MUTED}]"{prompt}"[/]'
+        if s.is_active:
+            status = f"[bold {GREEN}]●[/]"
+        elif s.is_idle:
+            status = f"[bold {AMBER}]●[/]"
+        else:
+            status = "[dim]○[/]"
+        project_display = format_project_display(s.project_name)
+        preview = s.prompt_preview[:25] if s.prompt_preview else ""
+        if len(s.prompt_preview) > 25:
+            preview += "..."
+        tool = f"⚙ {s.current_tool}" if s.current_tool else ""
+        duration = ""
+        if s.is_active or s.is_idle:
+            dur = format_duration(s.started_at)
+            if dur:
+                duration = f"({dur})"
+        return f'{status} {project_display:<16} "{preview}" {tool} {duration}'
 
 
 class SessionsHeader(Horizontal):
-    """Header with title and refresh indicator."""
+    """Legacy header."""
 
     def compose(self) -> ComposeResult:
         yield Static("ACTIVE SESSIONS", classes="section-title")
@@ -180,7 +270,7 @@ class SessionsHeader(Horizontal):
 
 
 class SessionCardContainer(VerticalScroll):
-    """Scrollable container for session cards."""
+    """Legacy container."""
 
     DEFAULT_CSS = """
     SessionCardContainer {
@@ -191,51 +281,13 @@ class SessionCardContainer(VerticalScroll):
 
 
 class ActiveSessionsPanel(Vertical):
-    """Panel displaying active sessions with rich cards."""
+    """Legacy panel for tests."""
 
     def compose(self) -> ComposeResult:
-        """Compose the panel."""
         yield SessionsHeader()
-        with SessionCardContainer():
-            yield from self._build_session_cards()
-
-    def _build_session_cards(self) -> list[Widget]:
-        """Build session card widgets."""
-        # Get all sessions
-        sessions = load_all_sessions()
-
-        if not sessions:
-            return [Static("No active sessions", classes="no-sessions")]
-
-        # Only show active and idle sessions (green/yellow)
-        active = [s for s in sessions if s.is_active]
-        idle = [s for s in sessions if s.is_idle]
-
-        # Combine: active first, then idle (max 10 total)
-        combined = active[:7] + idle[: 10 - len(active[:7])]
-
-        if not combined:
-            return [Static("No active sessions", classes="no-sessions")]
-
-        return [SessionCard(session) for session in combined]
+        yield SessionCardContainer()
 
     def refresh_sessions(self) -> None:
-        """Refresh the sessions list."""
-        # Find the container
-        try:
-            container = self.query_one(SessionCardContainer)
-        except Exception:
-            return
-
-        # Remove old cards
-        for widget in container.query("SessionCard, .no-sessions"):
-            widget.remove()
-
-        # Add new cards
-        for card in self._build_session_cards():
-            container.mount(card)
-
-        # Mark refresh indicator
         try:
             indicator = self.query_one("#sessions-refresh", RefreshIndicator)
             indicator.mark_refreshed()

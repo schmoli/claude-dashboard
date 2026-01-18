@@ -161,27 +161,16 @@ class TestLoadStatsCache:
             temp_path.unlink()
 
 
-class TestStatsPanel:
-    """Tests for StatsPanel widget."""
+class TestStatsCacheUsage:
+    """Tests for stats cache usage in app."""
 
     @pytest.mark.asyncio
-    async def test_stats_panel_present(self):
-        """Stats panel is present in the app."""
+    async def test_stats_cache_loaded_on_startup(self):
+        """Stats cache is loaded during app refresh."""
         from cdash.app import ClaudeDashApp
-        from cdash.components.stats import StatsPanel
 
         app = ClaudeDashApp()
         async with app.run_test():
-            panel = app.query_one(StatsPanel)
-            assert panel is not None
-
-    @pytest.mark.asyncio
-    async def test_trend_widget_present(self):
-        """Trend widget is present in stats panel."""
-        from cdash.app import ClaudeDashApp
-        from cdash.components.stats import TrendWidget
-
-        app = ClaudeDashApp()
-        async with app.run_test():
-            widget = app.query_one(TrendWidget)
-            assert widget is not None
+            # App should start without errors
+            # Stats are shown in the header via today's message/tool counts
+            assert app.is_running

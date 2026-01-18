@@ -118,22 +118,22 @@ class TestCheckCodeChanges:
             assert status.has_changes is False
 
 
-class TestStatusBarCodeChanged:
-    """Tests for StatusBar code changed indicator."""
+class TestHeaderPanelCodeChanged:
+    """Tests for HeaderPanel code changed indicator."""
 
     @pytest.mark.asyncio
-    async def test_status_bar_has_code_changed_widget(self):
-        """Test status bar contains code-changed widget."""
+    async def test_header_has_code_changed_widget(self):
+        """Test header contains code-changed widget."""
         from cdash.app import ClaudeDashApp
 
         app = ClaudeDashApp()
-        async with app.run_test() as pilot:
+        async with app.run_test():
             from textual.widgets import Static
 
-            from cdash.app import StatusBar
+            from cdash.components.header import HeaderPanel
 
-            status_bar = app.query_one(StatusBar)
-            code_changed = status_bar.query_one("#code-changed", Static)
+            header = app.query_one(HeaderPanel)
+            code_changed = header.query_one("#code-changed", Static)
             assert code_changed is not None
 
     @pytest.mark.asyncio
@@ -142,14 +142,14 @@ class TestStatusBarCodeChanged:
         from cdash.app import ClaudeDashApp
 
         app = ClaudeDashApp()
-        async with app.run_test() as pilot:
+        async with app.run_test():
             from textual.widgets import Static
 
-            from cdash.app import StatusBar
+            from cdash.components.header import HeaderPanel
 
-            status_bar = app.query_one(StatusBar)
-            status_bar.show_code_changed(True, 3)
-            code_changed = status_bar.query_one("#code-changed", Static)
+            header = app.query_one(HeaderPanel)
+            header.show_code_changed(True, 3)
+            code_changed = header.query_one("#code-changed", Static)
             # Use render() method for Textual Static widgets
             console = code_changed.app.console
             with console.capture() as capture:
@@ -164,14 +164,14 @@ class TestStatusBarCodeChanged:
         from cdash.app import ClaudeDashApp
 
         app = ClaudeDashApp()
-        async with app.run_test() as pilot:
+        async with app.run_test():
             from textual.widgets import Static
 
-            from cdash.app import StatusBar
+            from cdash.components.header import HeaderPanel
 
-            status_bar = app.query_one(StatusBar)
-            status_bar.show_code_changed(True, 1)
-            code_changed = status_bar.query_one("#code-changed", Static)
+            header = app.query_one(HeaderPanel)
+            header.show_code_changed(True, 1)
+            code_changed = header.query_one("#code-changed", Static)
             console = code_changed.app.console
             with console.capture() as capture:
                 console.print(code_changed.render())
@@ -185,14 +185,14 @@ class TestStatusBarCodeChanged:
         from cdash.app import ClaudeDashApp
 
         app = ClaudeDashApp()
-        async with app.run_test() as pilot:
+        async with app.run_test():
             from textual.widgets import Static
 
-            from cdash.app import StatusBar
+            from cdash.components.header import HeaderPanel
 
-            status_bar = app.query_one(StatusBar)
-            status_bar.show_code_changed(False, 0)
-            code_changed = status_bar.query_one("#code-changed", Static)
+            header = app.query_one(HeaderPanel)
+            header.show_code_changed(False, 0)
+            code_changed = header.query_one("#code-changed", Static)
             console = code_changed.app.console
             with console.capture() as capture:
                 console.print(code_changed.render())

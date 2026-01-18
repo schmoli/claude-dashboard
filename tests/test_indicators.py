@@ -89,42 +89,12 @@ class TestRefreshIndicatorIntegration:
     """Integration tests for RefreshIndicator in panels."""
 
     @pytest.mark.asyncio
-    async def test_sessions_panel_has_refresh_indicator(self):
-        """ActiveSessionsPanel contains refresh indicator."""
+    async def test_header_has_refresh_indicator(self):
+        """HeaderPanel contains refresh indicator."""
         from cdash.app import ClaudeDashApp
 
         app = ClaudeDashApp()
-        async with app.run_test() as pilot:
-            # Find the indicator
-            indicator = app.query_one("#sessions-refresh", RefreshIndicator)
-            assert indicator is not None
-
-    @pytest.mark.asyncio
-    async def test_tools_panel_has_refresh_indicator(self):
-        """ToolBreakdownPanel contains refresh indicator."""
-        from cdash.app import ClaudeDashApp
-
-        app = ClaudeDashApp()
-        async with app.run_test() as pilot:
-            indicator = app.query_one("#tools-refresh", RefreshIndicator)
-            assert indicator is not None
-
-    @pytest.mark.asyncio
-    async def test_ci_panel_has_refresh_indicator(self):
-        """CIActivityPanel contains refresh indicator."""
-        from cdash.app import ClaudeDashApp
-
-        app = ClaudeDashApp()
-        async with app.run_test() as pilot:
-            indicator = app.query_one("#ci-refresh", RefreshIndicator)
-            assert indicator is not None
-
-    @pytest.mark.asyncio
-    async def test_status_bar_has_refresh_indicator(self):
-        """StatusBar contains refresh indicator."""
-        from cdash.app import ClaudeDashApp
-
-        app = ClaudeDashApp()
-        async with app.run_test() as pilot:
-            indicator = app.query_one("#status-refresh", RefreshIndicator)
+        async with app.run_test():
+            # Find the indicator in header
+            indicator = app.query_one("#header-refresh", RefreshIndicator)
             assert indicator is not None

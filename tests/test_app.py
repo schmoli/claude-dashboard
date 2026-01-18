@@ -1,7 +1,8 @@
 """Tests for the main application."""
 
-from cdash.app import ClaudeDashApp, StatusBar
-from cdash.components.sessions import ActiveSessionsPanel
+from cdash.app import ClaudeDashApp
+from cdash.components.header import HeaderPanel
+from cdash.components.sessions import SessionsPanel
 
 
 class TestAppStartup:
@@ -14,12 +15,12 @@ class TestAppStartup:
             # App should have mounted
             assert app.is_running
 
-    async def test_status_bar_present(self):
-        """Status bar widget is mounted."""
+    async def test_header_panel_present(self):
+        """Header panel widget is mounted."""
         app = ClaudeDashApp()
         async with app.run_test():
-            status_bar = app.query_one(StatusBar)
-            assert status_bar is not None
+            header = app.query_one(HeaderPanel)
+            assert header is not None
 
     async def test_app_title(self):
         """App has correct title."""
@@ -39,18 +40,18 @@ class TestAppQuit:
             assert app.return_code == 0
 
 
-class TestActiveSessionsPanel:
-    """Test the active sessions panel."""
+class TestSessionsPanel:
+    """Test the sessions panel."""
 
     async def test_sessions_panel_present(self):
-        """Active sessions panel is mounted."""
+        """Sessions panel is mounted."""
         app = ClaudeDashApp()
         async with app.run_test():
-            panel = app.query_one(ActiveSessionsPanel)
+            panel = app.query_one(SessionsPanel)
             assert panel is not None
 
     async def test_sessions_panel_has_title(self):
-        """Active sessions panel shows title."""
+        """Sessions panel shows title."""
         app = ClaudeDashApp()
         async with app.run_test():
             # Check for the section title

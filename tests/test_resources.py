@@ -114,28 +114,34 @@ class TestGetResourceStats:
             assert abs(stats.memory_percent - 1.831) < 0.01
 
 
-class TestHostStatsInStatusBar:
-    """Tests for host stats display in StatusBar."""
+class TestHostStatsInHeaderPanel:
+    """Tests for host stats display in HeaderPanel."""
 
     @pytest.mark.asyncio
-    async def test_host_stats_in_statusbar(self):
-        """Host stats are displayed in StatusBar."""
-        from cdash.app import ClaudeDashApp, StatusBar
+    async def test_host_stats_in_header(self):
+        """Host stats are displayed in HeaderPanel."""
+        from cdash.app import ClaudeDashApp
+
+        from cdash.components.header import HeaderPanel
 
         app = ClaudeDashApp()
-        async with app.run_test() as pilot:
-            statusbar = app.query_one(StatusBar)
-            assert statusbar is not None
-            # StatusBar has host-stats widget
-            host_stats = app.query_one("#host-stats")
-            assert host_stats is not None
+        async with app.run_test():
+            header = app.query_one(HeaderPanel)
+            assert header is not None
+            # Header has host stats widgets
+            cpu_widget = app.query_one("#stat-cpu")
+            mem_widget = app.query_one("#stat-mem")
+            procs_widget = app.query_one("#stat-procs")
+            assert cpu_widget is not None
+            assert mem_widget is not None
+            assert procs_widget is not None
 
     @pytest.mark.asyncio
-    async def test_statusbar_update_host_stats(self):
-        """StatusBar can update host stats."""
-        from cdash.app import StatusBar
+    async def test_header_update_host_stats(self):
+        """HeaderPanel can update host stats."""
+        from cdash.components.header import HeaderPanel
 
-        statusbar = StatusBar()
+        header = HeaderPanel()
         # update_host_stats method exists and is callable
-        assert hasattr(statusbar, "update_host_stats")
-        assert callable(statusbar.update_host_stats)
+        assert hasattr(header, "update_host_stats")
+        assert callable(header.update_host_stats)

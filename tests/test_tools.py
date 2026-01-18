@@ -155,28 +155,11 @@ class TestParseToolCalls:
             temp_path.unlink()
 
 
-class TestToolBreakdownPanel:
-    """Tests for ToolBreakdownPanel widget."""
+class TestToolUsageIntegration:
+    """Integration tests for tool usage data."""
 
-    @pytest.mark.asyncio
-    async def test_panel_present(self):
-        """Tool breakdown panel is present in the app."""
-        from cdash.app import ClaudeDashApp
-        from cdash.components.tools import ToolBreakdownPanel
-
-        app = ClaudeDashApp()
-        async with app.run_test():
-            panel = app.query_one(ToolBreakdownPanel)
-            assert panel is not None
-
-    @pytest.mark.asyncio
-    async def test_has_title(self):
-        """Panel has a title with section-title class."""
-        from cdash.app import ClaudeDashApp
-        from cdash.components.tools import ToolBreakdownPanel
-
-        app = ClaudeDashApp()
-        async with app.run_test():
-            panel = app.query_one(ToolBreakdownPanel)
-            titles = panel.query(".section-title")
-            assert len(titles) >= 1
+    def test_tool_usage_dataclass(self):
+        """ToolUsage can be created and used."""
+        usage = ToolUsage(tool_counts={"Bash": 100, "Read": 50})
+        assert usage.total_calls == 150
+        assert len(usage.top_tools(2)) == 2

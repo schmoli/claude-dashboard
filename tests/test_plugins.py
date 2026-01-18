@@ -253,34 +253,10 @@ class TestPluginEnabled:
 class TestPluginsTab:
     """Tests for PluginsTab UI component."""
 
-    @pytest.mark.asyncio
-    async def test_plugins_tab_present(self):
-        """Plugins tab exists in app."""
-        app = ClaudeDashApp()
-        async with app.run_test() as pilot:
-            await pilot.press("2")  # Switch to Plugins tab
-            plugins_tab = app.query_one(PluginsTab)
-            assert plugins_tab is not None
-
-    @pytest.mark.asyncio
-    async def test_plugins_tab_has_title(self):
-        """Plugins tab has title."""
-        app = ClaudeDashApp()
-        async with app.run_test() as pilot:
-            await pilot.press("2")
-            plugins_tab = app.query_one(PluginsTab)
-            title = plugins_tab.query_one("#plugins-title")
-            assert "INSTALLED PLUGINS" in title.render().plain
-
-    @pytest.mark.asyncio
-    async def test_plugins_tab_has_grid(self):
-        """Plugins tab has grid container."""
-        app = ClaudeDashApp()
-        async with app.run_test() as pilot:
-            await pilot.press("2")
-            plugins_tab = app.query_one(PluginsTab)
-            grid = plugins_tab.query_one("#plugins-grid")
-            assert grid is not None
+    def test_plugins_tab_can_be_created(self):
+        """PluginsTab widget can be instantiated."""
+        tab = PluginsTab()
+        assert tab is not None
 
 
 class TestPluginCard:
