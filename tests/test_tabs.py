@@ -32,8 +32,8 @@ class TestDashboardTabs:
             assert tabs.active == "tab-overview"
 
     @pytest.mark.asyncio
-    async def test_five_tabs_exist(self):
-        """All five tabs exist (Overview, GitHub, Plugins, MCP, Agents)."""
+    async def test_four_tabs_exist(self):
+        """All four tabs exist (Overview, GitHub, Plugins, MCP)."""
         app = ClaudeDashApp()
         async with app.run_test():
             tabs = app.query_one(DashboardTabs)
@@ -42,7 +42,6 @@ class TestDashboardTabs:
             assert tabs.query_one("#tab-github") is not None
             assert tabs.query_one("#tab-plugins") is not None
             assert tabs.query_one("#tab-mcp") is not None
-            assert tabs.query_one("#tab-agents") is not None
 
 
 class TestTabNavigation:
@@ -74,15 +73,6 @@ class TestTabNavigation:
             await pilot.press("4")
             tabs = app.query_one(DashboardTabs)
             assert tabs.active == "tab-mcp"
-
-    @pytest.mark.asyncio
-    async def test_switch_to_agents_with_5(self):
-        """Pressing 5 switches to Agents tab."""
-        app = ClaudeDashApp()
-        async with app.run_test() as pilot:
-            await pilot.press("5")
-            tabs = app.query_one(DashboardTabs)
-            assert tabs.active == "tab-agents"
 
     @pytest.mark.asyncio
     async def test_switch_back_to_overview_with_1(self):
@@ -189,17 +179,6 @@ class TestTabsRender:
             await pilot.press("4")  # Switch to MCP
             mcp_tab = app.query_one(MCPServersTab)
             assert mcp_tab.size.height > 0
-
-    @pytest.mark.asyncio
-    async def test_agents_tab_has_height(self):
-        """Agents tab renders with non-zero height."""
-        from cdash.components.agents import AgentsTab
-
-        app = ClaudeDashApp()
-        async with app.run_test() as pilot:
-            await pilot.press("5")  # Switch to Agents
-            agents_tab = app.query_one(AgentsTab)
-            assert agents_tab.size.height > 0
 
     @pytest.mark.asyncio
     async def test_overview_has_visible_content(self):

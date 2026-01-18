@@ -75,7 +75,6 @@ class ClaudeDashApp(App):
         ("2", "switch_tab('tab-github')", "GitHub"),
         ("3", "switch_tab('tab-plugins')", "Plugins"),
         ("4", "switch_tab('tab-mcp')", "MCP"),
-        ("5", "switch_tab('tab-agents')", "Agents"),
     ]
 
     # Refresh interval in seconds

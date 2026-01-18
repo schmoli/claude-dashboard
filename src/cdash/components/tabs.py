@@ -4,7 +4,6 @@ from textual.app import ComposeResult
 from textual.containers import Center, Vertical
 from textual.widgets import Collapsible, LoadingIndicator, Static, TabbedContent, TabPane
 
-from cdash.components.agents import AgentsTab
 from cdash.components.ci import CIActivityPanel, CITab
 from cdash.components.header import TodayHeader
 from cdash.components.mcp import MCPServersTab
@@ -170,7 +169,7 @@ class DashboardTabs(Vertical):
 
     def compose(self) -> ComposeResult:
         # Tab labels with icons
-        # Order: Overview, GitHub, Plugins, MCP, Agents (5 tabs)
+        # Order: Overview, GitHub, Plugins, MCP (4 tabs)
         ic = TAB_ICONS_ASCII
         with TabbedContent(initial="tab-overview"):
             with TabPane(f"{ic['overview']} Overview", id="tab-overview"):
@@ -181,8 +180,6 @@ class DashboardTabs(Vertical):
                 yield PluginsTab()
             with TabPane(f"{ic['mcp']} MCP", id="tab-mcp"):
                 yield MCPServersTab()
-            with TabPane(f"{ic['agents']} Agents", id="tab-agents"):
-                yield AgentsTab()
 
     @property
     def active(self) -> str:
