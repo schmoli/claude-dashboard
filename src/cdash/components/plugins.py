@@ -142,6 +142,56 @@ class PluginRow(Widget, can_focus=True):
         self.post_message(self.Toggled(self, self.enabled))
 
 
+class PluginHeader(Widget):
+    """Header row for the plugins table."""
+
+    DEFAULT_CSS = """
+    PluginHeader {
+        width: 100%;
+        height: 1;
+        padding: 0 1;
+    }
+
+    PluginHeader > Horizontal {
+        width: 100%;
+        height: 1;
+    }
+
+    PluginHeader .row-status {
+        width: 3;
+        color: $text-muted;
+    }
+
+    PluginHeader .row-name {
+        width: 22;
+        color: $text-muted;
+    }
+
+    PluginHeader .row-version {
+        width: 12;
+        color: $text-muted;
+    }
+
+    PluginHeader .row-source {
+        width: 20;
+        color: $text-muted;
+    }
+
+    PluginHeader .row-counts {
+        width: 1fr;
+        color: $text-muted;
+    }
+    """
+
+    def compose(self) -> ComposeResult:
+        with Horizontal():
+            yield Static("", classes="row-status")
+            yield Static("NAME", classes="row-name")
+            yield Static("VERSION", classes="row-version")
+            yield Static("SOURCE", classes="row-source")
+            yield Static("COUNTS", classes="row-counts")
+
+
 class PluginsTab(VerticalScroll):
     """Plugins tab showing installed plugins as compact table rows."""
 
@@ -183,6 +233,7 @@ class PluginsTab(VerticalScroll):
         yield Static(
             "[space/enter] toggle  [arrows] navigate  [r] refresh", id="plugins-hint"
         )
+        yield PluginHeader()
 
     def on_mount(self) -> None:
         """Load plugins when mounted."""
@@ -251,7 +302,9 @@ def _format_counts(skills: int, agents: int) -> str:
     """Format skill/agent counts for display."""
     parts = []
     if skills > 0:
-        parts.append(f"{skills}s")
+        label = "skill" if skills == 1 else "skills"
+        parts.append(f"{skills} {label}")
     if agents > 0:
-        parts.append(f"{agents}a")
+        label = "agent" if agents == 1 else "agents"
+        parts.append(f"{agents} {label}")
     return ", ".join(parts) if parts else ""

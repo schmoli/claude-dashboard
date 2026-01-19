@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from cdash.app import ClaudeDashApp
-from cdash.components.plugins import PluginRow, PluginsTab
+from cdash.components.plugins import PluginHeader, PluginRow, PluginsTab, _format_counts
 from cdash.data.plugins import Plugin, find_installed_plugins, _is_semver, _parse_semver
 
 
@@ -327,3 +327,43 @@ class TestPluginRow:
         row = PluginRow(plugin)
         assert row.enabled is False
         assert row.plugin.enabled is False
+
+
+class TestPluginHeader:
+    """Tests for PluginHeader widget."""
+
+    def test_header_can_be_created(self):
+        """PluginHeader widget can be instantiated."""
+        header = PluginHeader()
+        assert header is not None
+
+
+class TestFormatCounts:
+    """Tests for count formatting."""
+
+    def test_format_counts_empty(self):
+        """No skills/agents returns empty string."""
+        assert _format_counts(0, 0) == ""
+
+    def test_format_counts_skills_only_singular(self):
+        """Single skill uses singular form."""
+        assert _format_counts(1, 0) == "1 skill"
+
+    def test_format_counts_skills_only_plural(self):
+        """Multiple skills use plural form."""
+        assert _format_counts(2, 0) == "2 skills"
+        assert _format_counts(10, 0) == "10 skills"
+
+    def test_format_counts_agents_only_singular(self):
+        """Single agent uses singular form."""
+        assert _format_counts(0, 1) == "1 agent"
+
+    def test_format_counts_agents_only_plural(self):
+        """Multiple agents use plural form."""
+        assert _format_counts(0, 3) == "3 agents"
+
+    def test_format_counts_both(self):
+        """Both skills and agents are formatted together."""
+        assert _format_counts(1, 1) == "1 skill, 1 agent"
+        assert _format_counts(2, 3) == "2 skills, 3 agents"
+        assert _format_counts(5, 1) == "5 skills, 1 agent"
