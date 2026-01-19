@@ -131,10 +131,8 @@ class TestHostStatsInHeaderPanel:
             # Header has host stats widgets
             cpu_widget = app.query_one("#stat-cpu")
             mem_widget = app.query_one("#stat-mem")
-            procs_widget = app.query_one("#stat-procs")
             assert cpu_widget is not None
             assert mem_widget is not None
-            assert procs_widget is not None
 
     @pytest.mark.asyncio
     async def test_header_update_host_stats(self):

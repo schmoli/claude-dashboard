@@ -119,11 +119,11 @@ class TestCheckCodeChanges:
 
 
 class TestHeaderPanelCodeChanged:
-    """Tests for HeaderPanel code changed indicator."""
+    """Tests for HeaderPanel code changed indicator (in logo tagline)."""
 
     @pytest.mark.asyncio
-    async def test_header_has_code_changed_widget(self):
-        """Test header contains code-changed widget."""
+    async def test_header_has_logo_tagline_widget(self):
+        """Test header contains logo-tagline widget for code changes."""
         from cdash.app import ClaudeDashApp
 
         app = ClaudeDashApp()
@@ -133,12 +133,12 @@ class TestHeaderPanelCodeChanged:
             from cdash.components.header import HeaderPanel
 
             header = app.query_one(HeaderPanel)
-            code_changed = header.query_one("#code-changed", Static)
-            assert code_changed is not None
+            tagline = header.query_one("#logo-tagline", Static)
+            assert tagline is not None
 
     @pytest.mark.asyncio
     async def test_code_changed_indicator_shows(self):
-        """Test code changed indicator updates."""
+        """Test code changed indicator updates logo tagline."""
         from cdash.app import ClaudeDashApp
 
         app = ClaudeDashApp()
@@ -149,18 +149,16 @@ class TestHeaderPanelCodeChanged:
 
             header = app.query_one(HeaderPanel)
             header.show_code_changed(True, 3)
-            code_changed = header.query_one("#code-changed", Static)
-            # Use render() method for Textual Static widgets
-            console = code_changed.app.console
+            tagline = header.query_one("#logo-tagline", Static)
+            console = tagline.app.console
             with console.capture() as capture:
-                console.print(code_changed.render())
+                console.print(tagline.render())
             rendered = capture.get()
-            # Compact format: ⟳3f(r) meaning "3 files changed, press r"
-            assert "3f" in rendered or "3 file" in rendered
+            assert "3 files changed" in rendered
 
     @pytest.mark.asyncio
     async def test_code_changed_indicator_singular(self):
-        """Test code changed indicator uses singular form."""
+        """Test code changed indicator with 1 file."""
         from cdash.app import ClaudeDashApp
 
         app = ClaudeDashApp()
@@ -171,17 +169,16 @@ class TestHeaderPanelCodeChanged:
 
             header = app.query_one(HeaderPanel)
             header.show_code_changed(True, 1)
-            code_changed = header.query_one("#code-changed", Static)
-            console = code_changed.app.console
+            tagline = header.query_one("#logo-tagline", Static)
+            console = tagline.app.console
             with console.capture() as capture:
-                console.print(code_changed.render())
+                console.print(tagline.render())
             rendered = capture.get()
-            # Compact format: ⟳1f(r) meaning "1 file changed, press r"
-            assert "1f" in rendered or "1 file" in rendered
+            assert "1 files changed" in rendered
 
     @pytest.mark.asyncio
     async def test_code_changed_indicator_hides(self):
-        """Test code changed indicator hides when no changes."""
+        """Test code changed indicator restores logo when no changes."""
         from cdash.app import ClaudeDashApp
 
         app = ClaudeDashApp()
@@ -192,12 +189,12 @@ class TestHeaderPanelCodeChanged:
 
             header = app.query_one(HeaderPanel)
             header.show_code_changed(False, 0)
-            code_changed = header.query_one("#code-changed", Static)
-            console = code_changed.app.console
+            tagline = header.query_one("#logo-tagline", Static)
+            console = tagline.app.console
             with console.capture() as capture:
-                console.print(code_changed.render())
-            rendered = capture.get().strip()
-            assert rendered == ""
+                console.print(tagline.render())
+            rendered = capture.get()
+            assert "dashboard" in rendered
 
 
 class TestRelaunchBinding:

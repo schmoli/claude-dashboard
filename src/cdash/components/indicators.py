@@ -23,22 +23,21 @@ REFRESHING_DURATION = 0.5  # How long to show refreshing state
 
 
 class RefreshIndicator(Static):
-    """Minimal liveness indicator dot.
+    """Self-documenting liveness indicator.
 
-    Shows a simple dot that changes color based on refresh health:
-    - init: dim dot (...)
-    - live: green dot (●)
-    - refreshing: pulsing coral dot (◉) - brief animation
-    - warn: amber dot (●)
-    - error: red dot (●)
+    Shows a dot + state word that changes color based on refresh health:
+    - init: dim dot + "init"
+    - live: green dot + "live"
+    - refreshing: pulsing coral dot + "sync"
+    - warn: amber dot + "warn"
+    - error: red dot + "error"
 
     Parent widget should call mark_refreshed() when data is fetched.
     """
 
     DEFAULT_CSS = """
     RefreshIndicator {
-        width: 3;
-        text-align: right;
+        width: 8;
     }
     RefreshIndicator.init {
         color: #555555;
@@ -105,7 +104,7 @@ class RefreshIndicator(Static):
             self._update_display()
 
     def _update_display(self) -> None:
-        """Update the displayed dot and CSS class."""
+        """Update the displayed dot + state word and CSS class."""
         # Remove old state classes
         for state in LivenessState:
             self.remove_class(state.value)
@@ -113,15 +112,19 @@ class RefreshIndicator(Static):
         # Add current state class
         self.add_class(self._state.value)
 
-        # Choose dot character
+        # Choose dot character and state word
         if self._state == LivenessState.INIT:
-            dot = "·"
+            display = "· init"
         elif self._state == LivenessState.REFRESHING:
-            dot = "◉"
-        else:
-            dot = "●"
+            display = "◉ sync"
+        elif self._state == LivenessState.LIVE:
+            display = "● live"
+        elif self._state == LivenessState.WARN:
+            display = "● warn"
+        else:  # ERROR
+            display = "● error"
 
-        self.update(dot)
+        self.update(display)
 
     @property
     def last_refresh(self) -> float:
