@@ -95,7 +95,11 @@ class ClaudeDashApp(App):
         """Refresh all data displays."""
         # Update active session count and today's stats in header
         active_sessions = get_active_sessions()
-        header = self.query_one(HeaderPanel)
+        try:
+            header = self.query_one(HeaderPanel)
+        except Exception:
+            # HeaderPanel not yet mounted (app still initializing)
+            return
 
         # Get today's stats
         msgs_today = 0
