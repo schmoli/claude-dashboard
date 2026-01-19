@@ -48,6 +48,11 @@ class HeaderPanel(Vertical):
         padding: 0 2;
     }
 
+    HeaderPanel .nav-item {
+        width: 1fr;
+        padding-left: 4;
+    }
+
     HeaderPanel .logo-col {
         width: auto;
         min-width: 26;
@@ -60,7 +65,7 @@ class HeaderPanel(Vertical):
     }
 
     HeaderPanel .stat-value {
-        width: auto;
+        width: 12;
     }
 
     HeaderPanel .logo-line {
@@ -76,32 +81,40 @@ class HeaderPanel(Vertical):
     def compose(self) -> ComposeResult:
         logo_lines = LOGO.splitlines()
 
-        # Row 1: Sessions / Logo line 1
+        # Navigation items for middle column
+        nav_items = [
+            ("1", "overview", "nav-1"),
+            ("2", "github", "nav-2"),
+            ("3", "plugins", "nav-3"),
+            ("4", "mcp", "nav-4"),
+        ]
+
+        # Row 1: Sessions / Nav 1 / Logo line 1
         with Horizontal(classes="header-row"):
             yield Static("Sessions:", classes="stat-label")
             yield Static("0 active", id="stat-sessions", classes="stat-value")
-            yield Static("", classes="stats-col")
+            yield Static(f"[bold {CORAL}]▸ 1 overview[/]", id="nav-1", classes="nav-item")
             yield Static(logo_lines[0] if logo_lines else "", classes="logo-line logo-col")
 
-        # Row 2: Today / Logo line 2
+        # Row 2: Today / Nav 2 / Logo line 2
         with Horizontal(classes="header-row"):
             yield Static("Today:", classes="stat-label")
             yield Static("0m / 0t", id="stat-today", classes="stat-value")
-            yield Static("", classes="stats-col")
+            yield Static(f"[{TEXT_MUTED}]  2 github[/]", id="nav-2", classes="nav-item")
             yield Static(logo_lines[1] if len(logo_lines) > 1 else "", classes="logo-line logo-col")
 
-        # Row 3: CPU / Logo line 3
+        # Row 3: CPU / Nav 3 / Logo line 3
         with Horizontal(classes="header-row"):
             yield Static("CPU:", classes="stat-label")
             yield Static("0%", id="stat-cpu", classes="stat-value")
-            yield Static("", classes="stats-col")
+            yield Static(f"[{TEXT_MUTED}]  3 plugins[/]", id="nav-3", classes="nav-item")
             yield Static(logo_lines[2] if len(logo_lines) > 2 else "", classes="logo-line logo-col")
 
-        # Row 4: MEM / Logo line 4
+        # Row 4: MEM / Nav 4 / Logo line 4
         with Horizontal(classes="header-row"):
             yield Static("MEM:", classes="stat-label")
             yield Static("0M", id="stat-mem", classes="stat-value")
-            yield Static("", classes="stats-col")
+            yield Static(f"[{TEXT_MUTED}]  4 mcp[/]", id="nav-4", classes="nav-item")
             yield Static(logo_lines[3] if len(logo_lines) > 3 else "", classes="logo-line logo-col")
 
         # Row 5: Sync indicator / Logo line 5 (or reload hint)
@@ -168,3 +181,29 @@ class HeaderPanel(Vertical):
                 widget.update(LOGO.splitlines()[4])
         except Exception:
             pass
+
+    def set_current_view(self, view_key: str) -> None:
+        """Update navigation to highlight active view.
+
+        Args:
+            view_key: The key ("1", "2", "3", "4") of the active view
+        """
+        # Nav items: key -> (id, label)
+        nav_items = {
+            "1": ("nav-1", "overview"),
+            "2": ("nav-2", "github"),
+            "3": ("nav-3", "plugins"),
+            "4": ("nav-4", "mcp"),
+        }
+
+        for key, (nav_id, label) in nav_items.items():
+            try:
+                widget = self.query_one(f"#{nav_id}", Static)
+                if key == view_key:
+                    # Active: arrow indicator, bold coral
+                    widget.update(f"[bold {CORAL}]▸ {key} {label}[/]")
+                else:
+                    # Inactive: indented, muted
+                    widget.update(f"[{TEXT_MUTED}]  {key} {label}[/]")
+            except Exception:
+                pass

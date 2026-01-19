@@ -9,6 +9,19 @@ Screen {
     background: $background;
 }
 
+/* Content container holds swappable view panels */
+#content {
+    height: 1fr;
+}
+
+/* All view panels fill the content area */
+#view-overview,
+#view-plugins,
+#view-mcp,
+#view-github {
+    height: 1fr;
+}
+
 /* ============================================
    HEADER PANEL (k9s-style stats row)
    ============================================ */

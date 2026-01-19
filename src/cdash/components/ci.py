@@ -218,8 +218,8 @@ class CITab(Vertical):
         ("p", "open_pr", "Open PR in browser"),
     ]
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
         self._repo_stats: list[RepoStats] = []
         self._recent_runs: list[WorkflowRun] = []
         self._hidden_count = 0

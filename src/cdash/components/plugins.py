@@ -202,8 +202,8 @@ class PluginsTab(VerticalScroll):
         Binding("r", "refresh", "Refresh"),
     ]
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
         self._plugins: list[Plugin] = []
 
     def compose(self) -> ComposeResult:
