@@ -69,23 +69,24 @@ After any code change:
 - direnv auto-venv setup
 - Session data loading from ~/.claude/projects/
 - Active session detection (file mtime within 60s)
-- Active sessions panel with project name, prompt preview
+- Active sessions panel with rich collapsible cards
 - Current tool indicator for active sessions
-- Auto-refresh every 10 seconds
+- Auto-refresh every 10 seconds with liveness dots
+- Host resource stats (CPU, memory, disk) on Overview
 - Today's message/tool counts in status bar
 - Weekly trend sparkline
 - Projects ranked by recent activity
 - Tool breakdown with horizontal bar charts
-- Tab navigation with 1-6 keys
-- 6 tabs: Overview, Plugins, MCP Servers, Skills, Agents, CI
-- Plugins tab with installed plugins list
+- Tab navigation with 1-4 keys
+- 4 tabs: Overview, GitHub, MCP Servers, Plugins
+- GitHub tab with Actions monitoring for claude-code-action repos
 - MCP Servers tab with configured servers display
-- Skills tab with skills grouped by plugin
-- Agents tab with user, plugin, and built-in agents
-- CI tab with GitHub Actions monitoring for claude-code-action repos
-- CI activity panel on Overview tab with today's run stats
+- Plugins tab with compact table rows
+- GitHub activity panel on Overview with today's run stats
 - Settings persistence for discovered/hidden repos
 - Session/tool data caching for performance
+- Code change detection with status indicator
+- k9s-style header with stats and logo
 
 ## Conventions
 

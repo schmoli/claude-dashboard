@@ -4,10 +4,12 @@ TUI dashboard for monitoring Claude Code sessions, plugins, and usage.
 
 ## Features
 
-- Real-time session monitoring
+- Real-time session monitoring with collapsible cards
 - Usage trends and statistics
-- Plugin/skill/agent catalog
+- GitHub Actions monitoring (claude-code-action repos)
+- Plugin catalog with compact table rows
 - MCP server status
+- Host resource stats (CPU, memory, disk)
 
 ## Installation
 

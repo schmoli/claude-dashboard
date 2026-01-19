@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Host resource stats on Overview tab (CPU, memory, disk usage)
+- Liveness indicator dots replacing refresh timestamps
+- Rich session cards with collapsible stats
+- Loading indicator during startup
+- Code change detection with status indicator
+
+### Changed
+
+- CI tab renamed to "GitHub" tab, moved to position 2
+- Plugins tab: compact table rows instead of cards
+- Layout: dashboard-focused redesign
+- Header: k9s-style multi-row with stats and logo
+- Keyboard: header menu for panel switching
+- Header: self-documenting sync indicator
+
+### Removed
+
+- Skills tab
+- Agents tab
+
+### Fixed
+
+- Loading screen visibility on startup
+- Parent project name detection for worktree sessions
+- Hyphenated project names now preserved correctly
+
 ## [0.7.0] - 2026-01-18
 
 ### Changed
