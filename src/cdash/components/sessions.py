@@ -191,8 +191,10 @@ class SessionCardFrame(Vertical):
             lines.append(f"  [{TEXT_MUTED}](no prompt)[/]")
 
         # Lines 4-6: Tool history with tree connectors
+        # Icons with consistent 2-cell visual width
+        # Single-width chars (⚙) get trailing space to align with double-width emoji
         tool_icons = {
-            "Bash": "⚙",
+            "Bash": "⚙ ",
             "Read": "📖",
             "Edit": "✏️",
             "Write": "📝",
@@ -208,7 +210,7 @@ class SessionCardFrame(Vertical):
             for i, tc in enumerate(s.recent_tool_calls):
                 is_last = (i == num_tools - 1)
                 prefix = "└─" if is_last else "├─"
-                icon = tool_icons.get(tc.tool_name, "⚙")
+                icon = tool_icons.get(tc.tool_name, "⚙ ")
                 trimmed = trim_path_to_project(tc.context, s.project_name)
                 context = trimmed[:45] + "..." if len(trimmed) > 45 else trimmed
                 rel_time = format_relative_time(tc.timestamp)
@@ -218,10 +220,10 @@ class SessionCardFrame(Vertical):
                     f"[{TEXT_MUTED}]{rel_time:>4}[/]"
                 )
         elif s.current_tool:
-            icon = tool_icons.get(s.current_tool, "⚙")
+            icon = tool_icons.get(s.current_tool, "⚙ ")
             trimmed = trim_path_to_project(s.current_tool_input or "", s.project_name)
             context = trimmed[:45] + "..." if len(trimmed) > 45 else trimmed
-            lines.append(f"  └─ [{CORAL}]{icon} {s.current_tool}[/] [{TEXT_MUTED}]{context}[/]")
+            lines.append(f"  └─ [{CORAL}]{icon}{s.current_tool}[/] [{TEXT_MUTED}]{context}[/]")
 
         # Footer: stats + path
         stats = f"{s.message_count} msgs • {s.tool_count} tools"
@@ -351,8 +353,10 @@ class SessionCard(Static):
             lines.append(f"  [{TEXT_MUTED}](no prompt)[/]")
 
         # Lines 4-6: Tool history (last 3 with context and relative time)
+        # Icons with consistent 2-cell visual width
+        # Single-width chars (⚙) get trailing space to align with double-width emoji
         tool_icons = {
-            "Bash": "⚙",
+            "Bash": "⚙ ",
             "Read": "📖",
             "Edit": "✏️",
             "Write": "📝",
@@ -365,7 +369,7 @@ class SessionCard(Static):
 
         if s.recent_tool_calls:
             for tc in s.recent_tool_calls:
-                icon = tool_icons.get(tc.tool_name, "⚙")
+                icon = tool_icons.get(tc.tool_name, "⚙ ")
                 trimmed = trim_path_to_project(tc.context, s.project_name)
                 context = trimmed[:45] + "..." if len(trimmed) > 45 else trimmed
                 rel_time = format_relative_time(tc.timestamp)
@@ -376,10 +380,10 @@ class SessionCard(Static):
                 )
         elif s.current_tool:
             # Fallback to current tool if no recent_tool_calls
-            icon = tool_icons.get(s.current_tool, "⚙")
+            icon = tool_icons.get(s.current_tool, "⚙ ")
             trimmed = trim_path_to_project(s.current_tool_input or "", s.project_name)
             context = trimmed[:45] + "..." if len(trimmed) > 45 else trimmed
-            lines.append(f"  [{CORAL}]{icon} {s.current_tool}[/] [{TEXT_MUTED}]{context}[/]")
+            lines.append(f"  [{CORAL}]{icon}{s.current_tool}[/] [{TEXT_MUTED}]{context}[/]")
 
         # Footer: stats + path
         stats = f"{s.message_count} msgs • {s.tool_count} tools"
