@@ -8,8 +8,8 @@ from textual.widget import Widget
 from textual.widgets import Static
 
 from cdash.components.indicators import RefreshIndicator
-from cdash.data.sessions import Session, format_duration, load_all_sessions
-from cdash.theme import AMBER, CORAL, GREEN, TEXT_MUTED
+from cdash.data.sessions import Session, format_duration, format_relative_time, load_all_sessions
+from cdash.theme import AMBER, CORAL, GREEN, RED, TEXT_MUTED
 
 
 def format_project_display(project_name: str | None) -> str:
@@ -70,58 +70,120 @@ class SessionCard(Static):
         self._update_classes()
         self.refresh()  # Re-render
 
-    def render(self) -> str:
-        """Render 3-line card content."""
-        s = self._session
+    def _render_context_bar(self, percentage: float) -> str:
+        """Render context usage bar with color coding."""
+        # 8-char bar
+        filled = int(percentage / 100 * 8)
+        filled = min(8, max(0, filled))
+        empty = 8 - filled
 
-        # Line 1: status indicator + project + badge + duration + stats
+        # Color based on percentage: green < 50%, yellow 50-80%, red > 80%
+        if percentage > 80:
+            color = RED
+        elif percentage > 50:
+            color = AMBER
+        else:
+            color = GREEN
+
+        bar = "█" * filled + "░" * empty
+        return f"[{color}]{bar}[/] [{TEXT_MUTED}]{percentage:.0f}%[/]"
+
+    def _format_path_display(self, path: str | None) -> str:
+        """Format path with home substitution."""
+        if not path:
+            return ""
+        import os
+        home = os.path.expanduser("~")
+        if path.startswith(home):
+            path = "~" + path[len(home):]
+        # Truncate from right if too long
+        if len(path) > 35:
+            path = path[:32] + "..."
+        return path
+
+    def render(self) -> str:
+        """Render H6e session card layout.
+
+        Layout:
+        ┌─────────────────────────────────────────────────────────────────┐
+        │ ● schmoli/claude-dashboard                               ACTIVE │
+        │   feature/branch-name                         3h   ████████░░ 82%│
+        │   "Implement the following plan..."                             │
+        │   ⚙ Bash   command...                                      now  │
+        │   📖 Read   file.py                                          2m  │
+        │   ✏️ Edit   other.py                                          5m  │
+        │   140 msgs • 116 tools                    ~/code/project/path   │
+        └─────────────────────────────────────────────────────────────────┘
+        """
+        s = self._session
+        lines = []
+
+        # Line 1: GitHub repo (or project) + status badge
         if s.is_active:
             status = f"[bold {GREEN}]●[/]"
-            badge = f"[{GREEN}]ACT[/]"
+            badge = f"[{GREEN}]ACTIVE[/]"
         elif s.is_idle:
             status = f"[bold {AMBER}]◐[/]"
             idle_mins = int((time.time() - s.last_modified) // 60)
-            badge = f"[{AMBER}]{idle_mins}m idle[/]"
+            badge = f"[{AMBER}]IDLE {idle_mins}m[/]"
         else:
             status = "[dim]○[/]"
-            badge = ""
+            badge = "[dim]DONE[/]"
 
-        project = format_project_display(s.project_name)
-        if s.git_branch:
-            project += f"[{TEXT_MUTED}]@{s.git_branch[:12]}[/]"
+        # Use GitHub repo if available, otherwise project name
+        title = s.github_repo or format_project_display(s.project_name)
+        lines.append(f"{status} [bold]{title}[/]  {badge}")
 
+        # Line 2: branch + duration + context bar
+        branch = s.git_branch[:40] if s.git_branch else ""
         dur = format_duration(s.started_at)
-        duration = f"⏱{dur}" if dur else ""
-        stats = f"[{TEXT_MUTED}]{s.message_count}m/{s.tool_count}t[/]"
-
-        line1 = f"{status} [bold]{project}[/]  {badge}  {duration}  {stats}"
-
-        # Line 2: current tool (if any)
-        if s.current_tool:
-            tool_input = ""
-            if s.current_tool_input:
-                inp = s.current_tool_input
-                if len(inp) > 50:
-                    inp = inp[:47] + "..."
-                tool_input = f" [{TEXT_MUTED}]{inp}[/]"
-            line2 = f"  [{CORAL}]⚙ {s.current_tool}[/]{tool_input}"
-        else:
-            line2 = ""
+        duration = f"{dur}" if dur else ""
+        context_bar = self._render_context_bar(s.context_percentage)
+        lines.append(f"  [{TEXT_MUTED}]{branch}[/]  {duration}  {context_bar}")
 
         # Line 3: prompt preview
         if s.full_prompt:
             prompt = s.full_prompt.replace("\n", " ").strip()
-            if len(prompt) > 70:
-                prompt = prompt[:67] + "..."
-            line3 = f'  [{TEXT_MUTED}]"{prompt}"[/]'
+            if len(prompt) > 65:
+                prompt = prompt[:62] + "..."
+            lines.append(f'  [{TEXT_MUTED}]"{prompt}"[/]')
         else:
-            line3 = f"  [{TEXT_MUTED}](no prompt)[/]"
+            lines.append(f"  [{TEXT_MUTED}](no prompt)[/]")
 
-        # Combine lines
-        lines = [line1]
-        if line2:
-            lines.append(line2)
-        lines.append(line3)
+        # Lines 4-6: Tool history (last 3 with context and relative time)
+        tool_icons = {
+            "Bash": "⚙",
+            "Read": "📖",
+            "Edit": "✏️",
+            "Write": "📝",
+            "Grep": "🔍",
+            "Glob": "📁",
+            "Task": "🤖",
+            "WebFetch": "🌐",
+            "WebSearch": "🔎",
+        }
+
+        if s.recent_tool_calls:
+            for tc in s.recent_tool_calls:
+                icon = tool_icons.get(tc.tool_name, "⚙")
+                context = tc.context[:45] + "..." if len(tc.context) > 45 else tc.context
+                rel_time = format_relative_time(tc.timestamp)
+                lines.append(
+                    f"  [{CORAL}]{icon} {tc.tool_name:<6}[/] "
+                    f"[{TEXT_MUTED}]{context:<50}[/] "
+                    f"[{TEXT_MUTED}]{rel_time:>4}[/]"
+                )
+        elif s.current_tool:
+            # Fallback to current tool if no recent_tool_calls
+            icon = tool_icons.get(s.current_tool, "⚙")
+            context = s.current_tool_input[:45] + "..." if len(s.current_tool_input or "") > 45 else (s.current_tool_input or "")
+            lines.append(f"  [{CORAL}]{icon} {s.current_tool}[/] [{TEXT_MUTED}]{context}[/]")
+
+        # Footer: stats + path
+        stats = f"{s.message_count} msgs • {s.tool_count} tools"
+        path = self._format_path_display(s.project_name)
+        lines.append(f"  [{TEXT_MUTED}]{stats}  {path}[/]")
+
         return "\n".join(lines)
 
 
