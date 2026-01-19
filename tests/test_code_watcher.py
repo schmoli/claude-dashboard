@@ -119,11 +119,11 @@ class TestCheckCodeChanges:
 
 
 class TestHeaderPanelCodeChanged:
-    """Tests for HeaderPanel code changed indicator (in logo tagline)."""
+    """Tests for HeaderPanel code changed indicator (logo color change)."""
 
     @pytest.mark.asyncio
-    async def test_header_has_logo_tagline_widget(self):
-        """Test header contains logo-tagline widget for code changes."""
+    async def test_header_has_logo_name_widget(self):
+        """Test header contains logo-name widget."""
         from cdash.app import ClaudeDashApp
 
         app = ClaudeDashApp()
@@ -133,68 +133,52 @@ class TestHeaderPanelCodeChanged:
             from cdash.components.header import HeaderPanel
 
             header = app.query_one(HeaderPanel)
-            tagline = header.query_one("#logo-tagline", Static)
-            assert tagline is not None
+            name = header.query_one("#logo-name", Static)
+            assert name is not None
 
     @pytest.mark.asyncio
-    async def test_code_changed_indicator_shows(self):
-        """Test code changed indicator updates logo tagline."""
+    async def test_code_changed_adds_css_class(self):
+        """Test code changed indicator adds reload-needed CSS class."""
         from cdash.app import ClaudeDashApp
 
         app = ClaudeDashApp()
         async with app.run_test():
+            from textual.containers import Vertical
             from textual.widgets import Static
 
             from cdash.components.header import HeaderPanel
 
             header = app.query_one(HeaderPanel)
             header.show_code_changed(True, 3)
-            tagline = header.query_one("#logo-tagline", Static)
-            console = tagline.app.console
-            with console.capture() as capture:
-                console.print(tagline.render())
-            rendered = capture.get()
-            assert "3f changed" in rendered
+
+            # Check CSS class added to panel and name
+            panel = header.query_one("#logo-panel", Vertical)
+            name = header.query_one("#logo-name", Static)
+            assert panel.has_class("reload-needed")
+            assert name.has_class("reload-needed")
 
     @pytest.mark.asyncio
-    async def test_code_changed_indicator_singular(self):
-        """Test code changed indicator with 1 file."""
+    async def test_code_changed_removes_css_class(self):
+        """Test code changed indicator removes CSS class when cleared."""
         from cdash.app import ClaudeDashApp
 
         app = ClaudeDashApp()
         async with app.run_test():
+            from textual.containers import Vertical
             from textual.widgets import Static
 
             from cdash.components.header import HeaderPanel
 
             header = app.query_one(HeaderPanel)
-            header.show_code_changed(True, 1)
-            tagline = header.query_one("#logo-tagline", Static)
-            console = tagline.app.console
-            with console.capture() as capture:
-                console.print(tagline.render())
-            rendered = capture.get()
-            assert "1f changed" in rendered
-
-    @pytest.mark.asyncio
-    async def test_code_changed_indicator_hides(self):
-        """Test code changed indicator restores logo when no changes."""
-        from cdash.app import ClaudeDashApp
-
-        app = ClaudeDashApp()
-        async with app.run_test():
-            from textual.widgets import Static
-
-            from cdash.components.header import HeaderPanel
-
-            header = app.query_one(HeaderPanel)
+            # First show changes, then hide
+            header.show_code_changed(True, 5)
             header.show_code_changed(False, 0)
-            tagline = header.query_one("#logo-tagline", Static)
-            console = tagline.app.console
-            with console.capture() as capture:
-                console.print(tagline.render())
-            rendered = capture.get()
-            assert "dashboard" in rendered
+
+            # CSS class should be removed
+            panel = header.query_one("#logo-panel", Vertical)
+            name = header.query_one("#logo-name", Static)
+            assert not panel.has_class("reload-needed")
+            assert not name.has_class("reload-needed")
 
 
 class TestRelaunchBinding:
