@@ -11,7 +11,7 @@ from cdash.theme import AMBER, CORAL, GREEN, RED, TEXT_MUTED
 
 # Border color for visibility on black
 BORDER = "#555555"
-BORDER_ACCENT = "#D97757"  # coral for logo panel
+BORDER_ACCENT = "#5C9FD6"  # blue for logo panel
 
 
 class HeaderPanel(Horizontal):
@@ -60,11 +60,17 @@ class HeaderPanel(Horizontal):
     }
 
     HeaderPanel #logo-panel {
-        border: round #D97757;
+        border: round #5C9FD6;
         background: $surface;
         width: 1fr;
         height: 100%;
         padding: 0 1;
+        content-align: center middle;
+    }
+
+    HeaderPanel #logo-panel.reload-needed {
+        border: round #E5B567;
+        background: #2a2520;
     }
 
     HeaderPanel .gauge-label {
@@ -86,14 +92,20 @@ class HeaderPanel(Horizontal):
         height: 1;
     }
 
-    HeaderPanel .logo-line {
-        color: $warning;
+    HeaderPanel .logo-symbol {
+        text-align: center;
+        color: $primary;
         text-style: bold;
     }
 
-    HeaderPanel .logo-tagline {
+    HeaderPanel .logo-name {
+        text-align: center;
         color: $primary;
         text-style: bold;
+    }
+
+    HeaderPanel .logo-name.reload-needed {
+        color: $warning;
     }
     """
 
@@ -138,11 +150,10 @@ class HeaderPanel(Horizontal):
             yield Static(f"[{TEXT_MUTED}]  2 github[/]", id="nav-2", classes="nav-row")
             yield Static(f"[{TEXT_MUTED}]  3 plugins[/]", id="nav-3", classes="nav-row")
 
-        # Logo panel
+        # Logo panel - compact cockpit indicator
         with Vertical(id="logo-panel"):
-            yield Static("[bold #E5B567] ___/ /_ ___ / /[/]", classes="logo-line")
-            yield Static("[bold #E5B567]/ __/ _ `(_-</ _ \\[/]", classes="logo-line")
-            yield Static("⬡ dashboard", id="logo-tagline", classes="logo-tagline")
+            yield Static("⬢", id="logo-symbol", classes="logo-symbol")
+            yield Static("dash", id="logo-name", classes="logo-name")
 
     def _format_count(self, n: int) -> str:
         """Format large numbers compactly (1234 -> 1.2k)."""
@@ -231,13 +242,22 @@ class HeaderPanel(Horizontal):
         self._last_refresh = time.time()
 
     def show_code_changed(self, changed: bool, file_count: int = 0) -> None:
-        """Show/hide the code changed indicator in logo tagline."""
+        """Show/hide the reload indicator with amber styling.
+
+        When code changes are detected:
+        - Logo panel border changes from coral to amber
+        - "dash" text turns amber (warning color)
+        """
         try:
-            widget = self.query_one("#logo-tagline", Static)
+            panel = self.query_one("#logo-panel", Vertical)
+            name = self.query_one("#logo-name", Static)
+
             if changed:
-                widget.update(f"[bold {CORAL}]⟳ {file_count}f changed[/]")
+                panel.add_class("reload-needed")
+                name.add_class("reload-needed")
             else:
-                widget.update("⬡ dashboard")
+                panel.remove_class("reload-needed")
+                name.remove_class("reload-needed")
         except Exception:
             pass
 

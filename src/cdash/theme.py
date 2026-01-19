@@ -1,14 +1,14 @@
-"""Claude Dashboard theme - Warm Terminal aesthetic.
+"""Claude Dashboard theme - Cool Terminal aesthetic.
 
-Anthropic coral/terracotta branding merged with sophisticated terminal aesthetic.
+Clean terminal aesthetic with blue primary accent.
 """
 
 from textual.design import ColorSystem
 from textual.theme import Theme
 
 # Color constants for use in Rich markup
-CORAL = "#D97757"  # Primary accent
-BLUE = "#6A9BCC"  # Secondary
+CORAL = "#5C9FD6"  # Primary accent (blue)
+BLUE = "#5C9FD6"  # Secondary (same blue)
 GREEN = "#788C5D"  # Success
 AMBER = "#E5B567"  # Warning
 RED = "#CC6666"  # Error/danger
@@ -56,9 +56,9 @@ def create_claude_theme() -> Theme:
             "background": BG,
             "surface": SURFACE,
             "panel": PANEL,
-            "primary-darken-1": "#C46647",
-            "primary-darken-2": "#A85539",
-            "primary-darken-3": "#8C4730",
+            "primary-darken-1": "#4A8BC2",
+            "primary-darken-2": "#3A7AAE",
+            "primary-darken-3": "#2D6999",
             "border": "#404040",
             "border-subtle": "#333333",
         },
