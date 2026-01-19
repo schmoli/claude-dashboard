@@ -9,6 +9,7 @@ from cdash.data.sessions import (
     _decode_project_path,
     find_session_files,
     format_duration,
+    format_file_size,
     list_projects,
     parse_session_file,
 )
@@ -323,6 +324,34 @@ class TestFormatDuration:
         started = time.time() - 24 * 60 * 60
         result = format_duration(started)
         assert result == "1d"
+
+
+class TestFormatFileSize:
+    """Tests for format_file_size helper."""
+
+    def test_bytes(self):
+        """Small values show as bytes."""
+        assert format_file_size(0) == "0B"
+        assert format_file_size(512) == "512B"
+        assert format_file_size(1023) == "1023B"
+
+    def test_kilobytes_small(self):
+        """Values under 10KB show one decimal."""
+        assert format_file_size(1024) == "1.0KB"
+        assert format_file_size(5 * 1024) == "5.0KB"
+        assert format_file_size(9 * 1024 + 512) == "9.5KB"
+
+    def test_kilobytes_large(self):
+        """Values 10KB+ show no decimals."""
+        assert format_file_size(10 * 1024) == "10KB"
+        assert format_file_size(64 * 1024) == "64KB"
+        assert format_file_size(999 * 1024) == "999KB"
+
+    def test_megabytes(self):
+        """MB values show one decimal."""
+        assert format_file_size(1024 * 1024) == "1.0MB"
+        assert format_file_size(int(1.5 * 1024 * 1024)) == "1.5MB"
+        assert format_file_size(10 * 1024 * 1024) == "10.0MB"
 
 
 class TestNewSessionFields:

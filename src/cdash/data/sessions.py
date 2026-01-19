@@ -97,6 +97,25 @@ def format_relative_time(timestamp: float) -> str:
     return f"{age_mins // 60}h"
 
 
+def format_file_size(size_bytes: int) -> str:
+    """Format file size as human-readable string.
+
+    Args:
+        size_bytes: Size in bytes
+
+    Returns:
+        Human-readable size string (e.g., "64KB", "1.2MB")
+    """
+    if size_bytes < 1024:
+        return f"{size_bytes}B"
+    elif size_bytes < 1024 * 1024:
+        kb = size_bytes / 1024
+        return f"{kb:.0f}KB" if kb >= 10 else f"{kb:.1f}KB"
+    else:
+        mb = size_bytes / (1024 * 1024)
+        return f"{mb:.1f}MB"
+
+
 # Cache for GitHub repo lookups
 _github_repo_cache: dict[str, str | None] = {}
 
