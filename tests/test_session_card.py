@@ -5,7 +5,12 @@ import time
 import pytest
 
 from cdash.app import ClaudeDashApp
-from cdash.components.sessions import SessionCard, SessionsPanel, format_project_display
+from cdash.components.sessions import (
+    SessionCard,
+    SessionsPanel,
+    format_project_display,
+    trim_path_to_project,
+)
 from cdash.data.sessions import Session
 
 
@@ -159,3 +164,58 @@ class TestFormatProjectDisplay:
         """None project returns 'unknown'."""
         result = format_project_display(None)
         assert result == "unknown"
+
+
+class TestTrimPathToProject:
+    """Tests for trim_path_to_project function."""
+
+    def test_trims_project_prefix(self):
+        """Strips project path prefix from file path."""
+        result = trim_path_to_project(
+            "/Users/toli/code/project/src/main.py",
+            "/Users/toli/code/project",
+        )
+        assert result == "src/main.py"
+
+    def test_handles_trailing_slash(self):
+        """Works with trailing slash in project path."""
+        result = trim_path_to_project(
+            "/Users/toli/code/project/src/main.py",
+            "/Users/toli/code/project/",
+        )
+        assert result == "src/main.py"
+
+    def test_preserves_non_subpath(self):
+        """Returns original if context is not under project."""
+        result = trim_path_to_project(
+            "/other/path/file.py",
+            "/Users/toli/code/project",
+        )
+        assert result == "/other/path/file.py"
+
+    def test_handles_empty_context(self):
+        """Returns empty string for empty context."""
+        result = trim_path_to_project("", "/Users/toli/code/project")
+        assert result == ""
+
+    def test_handles_none_project(self):
+        """Returns original context when project is None."""
+        result = trim_path_to_project("/some/file.py", None)
+        assert result == "/some/file.py"
+
+    def test_handles_non_path_context(self):
+        """Non-path context (commands, queries) unchanged."""
+        result = trim_path_to_project(
+            "npm run build",
+            "/Users/toli/code/project",
+        )
+        assert result == "npm run build"
+
+    def test_handles_partial_match(self):
+        """Doesn't strip if project is only partial match."""
+        result = trim_path_to_project(
+            "/Users/toli/code/project-other/src/file.py",
+            "/Users/toli/code/project",
+        )
+        # Should NOT strip because project-other != project
+        assert result == "/Users/toli/code/project-other/src/file.py"
