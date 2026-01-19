@@ -18,7 +18,7 @@ from cdash.data.sessions import (
 )
 from cdash.theme import AMBER, CORAL, GREEN, RED, TEXT_MUTED
 
-# Minimum time (seconds) a card stays visible after first shown
+# Minimum time (seconds) a card stays visible after last active
 # Prevents flickering when sessions rapidly toggle active/idle states
 MIN_CARD_VISIBILITY = 180.0
 
@@ -540,8 +540,8 @@ class SessionsPanel(Vertical):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         self._groups: dict[str, ProjectGroup] = {}
-        # Track when each session was first shown (for stickiness)
-        self._card_first_shown: dict[str, float] = {}
+        # Track when each session was last active (for stickiness)
+        self._card_last_active: dict[str, float] = {}
 
     def compose(self) -> ComposeResult:
         yield VerticalScroll(id="cards-container")
@@ -570,14 +570,13 @@ class SessionsPanel(Vertical):
         visible_sessions = []
         for s in sessions:
             if s.is_active or s.is_idle:
-                # Track when first shown
-                if s.session_id not in self._card_first_shown:
-                    self._card_first_shown[s.session_id] = now
+                # Update last active timestamp (always, not just first time)
+                self._card_last_active[s.session_id] = now
                 visible_sessions.append(s)
-            elif s.session_id in self._card_first_shown:
-                # Check if still within stickiness window
-                first_shown = self._card_first_shown[s.session_id]
-                if now - first_shown < MIN_CARD_VISIBILITY:
+            elif s.session_id in self._card_last_active:
+                # Check if still within stickiness window since LAST active
+                last_active = self._card_last_active[s.session_id]
+                if now - last_active < MIN_CARD_VISIBILITY:
                     visible_sessions.append(s)
 
         # Group by project
@@ -585,9 +584,9 @@ class SessionsPanel(Vertical):
 
         # Clean up tracking dict for sessions no longer visible
         visible_ids = {s.session_id for s in visible_sessions}
-        stale_ids = [sid for sid in self._card_first_shown if sid not in visible_ids]
+        stale_ids = [sid for sid in self._card_last_active if sid not in visible_ids]
         for sid in stale_ids:
-            del self._card_first_shown[sid]
+            del self._card_last_active[sid]
 
         try:
             container = self.query_one("#cards-container", VerticalScroll)

@@ -261,9 +261,9 @@ class TestSessionCardStickiness:
         )
 
     def test_active_session_tracked_on_first_show(self):
-        """Active sessions are tracked when first shown."""
+        """Active sessions are tracked with current timestamp."""
         panel = SessionsPanel()
-        panel._card_first_shown = {}
+        panel._card_last_active = {}
 
         active_session = self.make_session_with_id("sess-1", is_active=True)
 
@@ -277,22 +277,22 @@ class TestSessionCardStickiness:
                 except Exception:
                     pass
 
-        assert "sess-1" in panel._card_first_shown
-        assert panel._card_first_shown["sess-1"] == 1000.0
+        assert "sess-1" in panel._card_last_active
+        assert panel._card_last_active["sess-1"] == 1000.0
 
     def test_inactive_session_stays_visible_within_window(self):
         """Session stays visible within MIN_CARD_VISIBILITY window."""
         panel = SessionsPanel()
-        # Simulate session was first shown at t=1000
-        panel._card_first_shown = {"sess-1": 1000.0}
+        # Simulate session was last active at t=1000
+        panel._card_last_active = {"sess-1": 1000.0}
 
-        # Session is now inactive (last_modified > 5min ago)
+        # Session is now inactive
         inactive_session = self.make_session_with_id("sess-1", is_active=False, is_idle=False)
 
         with patch("cdash.components.sessions.load_all_sessions") as mock_load:
             mock_load.return_value = [inactive_session]
             with patch("cdash.components.sessions.time.time") as mock_time:
-                # Current time is still within window (1000 + 60 = 1060 < 1000 + 180)
+                # Current time is still within window (1000 + 60 < 1000 + 180)
                 mock_time.return_value = 1060.0
                 try:
                     panel.refresh_sessions()
@@ -300,13 +300,13 @@ class TestSessionCardStickiness:
                     pass
 
         # Session should still be tracked (not removed from dict)
-        assert "sess-1" in panel._card_first_shown
+        assert "sess-1" in panel._card_last_active
 
     def test_inactive_session_removed_after_window_expires(self):
         """Session is removed after MIN_CARD_VISIBILITY window expires."""
         panel = SessionsPanel()
-        # Simulate session was first shown at t=1000
-        panel._card_first_shown = {"sess-1": 1000.0}
+        # Simulate session was last active at t=1000
+        panel._card_last_active = {"sess-1": 1000.0}
 
         # Session is now inactive
         inactive_session = self.make_session_with_id("sess-1", is_active=False, is_idle=False)
@@ -322,28 +322,29 @@ class TestSessionCardStickiness:
                     pass
 
         # Session should be removed from tracking
-        assert "sess-1" not in panel._card_first_shown
+        assert "sess-1" not in panel._card_last_active
 
     def test_idle_session_updates_tracking(self):
-        """Idle sessions keep their original first_shown time."""
+        """Idle sessions update their last_active timestamp (rolling window)."""
         panel = SessionsPanel()
-        # Session was first shown at t=1000
-        panel._card_first_shown = {"sess-1": 1000.0}
-
-        # Session is now idle
-        idle_session = self.make_session_with_id("sess-1", is_active=False, is_idle=True)
+        # Session was last active at t=1000
+        panel._card_last_active = {"sess-1": 1000.0}
 
         with patch("cdash.components.sessions.load_all_sessions") as mock_load:
-            mock_load.return_value = [idle_session]
             with patch("cdash.components.sessions.time.time") as mock_time:
+                # Patch time BEFORE creating session (is_idle uses time.time())
                 mock_time.return_value = 1100.0
-                try:
-                    panel.refresh_sessions()
-                except Exception:
-                    pass
+                with patch("cdash.data.sessions.time.time", return_value=1100.0):
+                    # Session is idle (last_modified 120s ago = 1100 - 120 = 980)
+                    idle_session = self.make_session_with_id("sess-1", is_active=False, is_idle=True)
+                    mock_load.return_value = [idle_session]
+                    try:
+                        panel.refresh_sessions()
+                    except Exception:
+                        pass
 
-        # Original timestamp should be preserved
-        assert panel._card_first_shown["sess-1"] == 1000.0
+        # Timestamp should be updated to current time (rolling window)
+        assert panel._card_last_active["sess-1"] == 1100.0
 
     def test_min_card_visibility_constant(self):
         """MIN_CARD_VISIBILITY is 180 seconds (3 minutes)."""
