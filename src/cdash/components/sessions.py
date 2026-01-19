@@ -24,6 +24,33 @@ def format_project_display(project_name: str | None) -> str:
     return project_name.split("/")[-1]
 
 
+def trim_path_to_project(context: str, project_path: str | None) -> str:
+    """Trim absolute paths to be relative to the project directory.
+
+    Since the project name is already shown in the card header, we strip
+    the project path prefix from file paths to reduce redundancy.
+
+    Args:
+        context: Tool context string (may contain file path)
+        project_path: Absolute path to the project directory
+
+    Returns:
+        Context with project prefix stripped, or original if not a subpath
+    """
+    if not context or not project_path:
+        return context
+
+    # Ensure project_path ends without trailing slash for clean stripping
+    project_path = project_path.rstrip("/")
+
+    # Check if context starts with project path
+    if context.startswith(project_path + "/"):
+        # Return path relative to project (without leading ./)
+        return context[len(project_path) + 1:]
+
+    return context
+
+
 class SectionHeader(Static):
     """Section divider: ── ACTIVE ───────────────────────────── [2] ──"""
 
@@ -182,7 +209,8 @@ class SessionCardFrame(Vertical):
                 is_last = (i == num_tools - 1)
                 prefix = "└─" if is_last else "├─"
                 icon = tool_icons.get(tc.tool_name, "⚙")
-                context = tc.context[:45] + "..." if len(tc.context) > 45 else tc.context
+                trimmed = trim_path_to_project(tc.context, s.project_name)
+                context = trimmed[:45] + "..." if len(trimmed) > 45 else trimmed
                 rel_time = format_relative_time(tc.timestamp)
                 lines.append(
                     f"  {prefix} [{CORAL}]{icon} {tc.tool_name:<6}[/] "
@@ -191,7 +219,8 @@ class SessionCardFrame(Vertical):
                 )
         elif s.current_tool:
             icon = tool_icons.get(s.current_tool, "⚙")
-            context = s.current_tool_input[:45] + "..." if len(s.current_tool_input or "") > 45 else (s.current_tool_input or "")
+            trimmed = trim_path_to_project(s.current_tool_input or "", s.project_name)
+            context = trimmed[:45] + "..." if len(trimmed) > 45 else trimmed
             lines.append(f"  └─ [{CORAL}]{icon} {s.current_tool}[/] [{TEXT_MUTED}]{context}[/]")
 
         # Footer: stats + path
@@ -337,7 +366,8 @@ class SessionCard(Static):
         if s.recent_tool_calls:
             for tc in s.recent_tool_calls:
                 icon = tool_icons.get(tc.tool_name, "⚙")
-                context = tc.context[:45] + "..." if len(tc.context) > 45 else tc.context
+                trimmed = trim_path_to_project(tc.context, s.project_name)
+                context = trimmed[:45] + "..." if len(trimmed) > 45 else trimmed
                 rel_time = format_relative_time(tc.timestamp)
                 lines.append(
                     f"  [{CORAL}]{icon} {tc.tool_name:<6}[/] "
@@ -347,7 +377,8 @@ class SessionCard(Static):
         elif s.current_tool:
             # Fallback to current tool if no recent_tool_calls
             icon = tool_icons.get(s.current_tool, "⚙")
-            context = s.current_tool_input[:45] + "..." if len(s.current_tool_input or "") > 45 else (s.current_tool_input or "")
+            trimmed = trim_path_to_project(s.current_tool_input or "", s.project_name)
+            context = trimmed[:45] + "..." if len(trimmed) > 45 else trimmed
             lines.append(f"  [{CORAL}]{icon} {s.current_tool}[/] [{TEXT_MUTED}]{context}[/]")
 
         # Footer: stats + path
