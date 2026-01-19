@@ -18,6 +18,10 @@ from cdash.data.sessions import (
 )
 from cdash.theme import AMBER, CORAL, GREEN, RED, TEXT_MUTED
 
+# Minimum time (seconds) a card stays visible after first shown
+# Prevents flickering when sessions rapidly toggle active/idle states
+MIN_CARD_VISIBILITY = 180.0
+
 
 def format_project_display(project_name: str | None) -> str:
     """Format project name for display, handling worktrees."""
@@ -536,6 +540,8 @@ class SessionsPanel(Vertical):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         self._groups: dict[str, ProjectGroup] = {}
+        # Track when each session was first shown (for stickiness)
+        self._card_first_shown: dict[str, float] = {}
 
     def compose(self) -> ComposeResult:
         yield VerticalScroll(id="cards-container")
@@ -551,14 +557,37 @@ class SessionsPanel(Vertical):
         return f"group-{safe_key}"
 
     def refresh_sessions(self) -> None:
-        """Refresh sessions grouped by project (no flashing)."""
-        sessions = load_all_sessions()
+        """Refresh sessions grouped by project (no flashing).
 
-        # Filter to active and idle only
-        active_idle = [s for s in sessions if s.is_active or s.is_idle]
+        Sessions are kept visible for MIN_CARD_VISIBILITY seconds after
+        first shown, even if they become inactive. This prevents flickering
+        when sessions rapidly toggle between active/idle/inactive states.
+        """
+        sessions = load_all_sessions()
+        now = time.time()
+
+        # Filter: active/idle OR within stickiness window
+        visible_sessions = []
+        for s in sessions:
+            if s.is_active or s.is_idle:
+                # Track when first shown
+                if s.session_id not in self._card_first_shown:
+                    self._card_first_shown[s.session_id] = now
+                visible_sessions.append(s)
+            elif s.session_id in self._card_first_shown:
+                # Check if still within stickiness window
+                first_shown = self._card_first_shown[s.session_id]
+                if now - first_shown < MIN_CARD_VISIBILITY:
+                    visible_sessions.append(s)
 
         # Group by project
-        grouped = group_sessions_by_project(active_idle)
+        grouped = group_sessions_by_project(visible_sessions)
+
+        # Clean up tracking dict for sessions no longer visible
+        visible_ids = {s.session_id for s in visible_sessions}
+        stale_ids = [sid for sid in self._card_first_shown if sid not in visible_ids]
+        for sid in stale_ids:
+            del self._card_first_shown[sid]
 
         try:
             container = self.query_one("#cards-container", VerticalScroll)

@@ -1,11 +1,13 @@
 """Tests for the SessionCard widget."""
 
 import time
+from unittest.mock import patch
 
 import pytest
 
 from cdash.app import ClaudeDashApp
 from cdash.components.sessions import (
+    MIN_CARD_VISIBILITY,
     SessionCard,
     SessionsPanel,
     format_project_display,
@@ -219,3 +221,130 @@ class TestTrimPathToProject:
         )
         # Should NOT strip because project-other != project
         assert result == "/Users/toli/code/project-other/src/file.py"
+
+
+class TestSessionCardStickiness:
+    """Tests for session card stickiness behavior."""
+
+    def make_session_with_id(
+        self,
+        session_id: str,
+        is_active: bool = True,
+        is_idle: bool = False,
+        project_name: str = "/test/project",
+    ) -> Session:
+        """Create a test session with a specific ID."""
+        now = time.time()
+        if is_active:
+            last_modified = now
+        elif is_idle:
+            last_modified = now - 120
+        else:
+            last_modified = now - 600  # Inactive
+
+        return Session(
+            session_id=session_id,
+            project_path=project_name,
+            project_name=project_name,
+            cwd=project_name,
+            last_modified=last_modified,
+            prompt_preview="Test",
+            current_tool=None,
+            is_active=is_active,
+            started_at=now - 1800,
+            git_branch="main",
+            message_count=5,
+            tool_count=10,
+            recent_tools=[],
+            current_tool_input="",
+            full_prompt="Test prompt",
+        )
+
+    def test_active_session_tracked_on_first_show(self):
+        """Active sessions are tracked when first shown."""
+        panel = SessionsPanel()
+        panel._card_first_shown = {}
+
+        active_session = self.make_session_with_id("sess-1", is_active=True)
+
+        with patch("cdash.components.sessions.load_all_sessions") as mock_load:
+            mock_load.return_value = [active_session]
+            with patch("cdash.components.sessions.time.time") as mock_time:
+                mock_time.return_value = 1000.0
+                # Call refresh_sessions but catch the DOM query exception
+                try:
+                    panel.refresh_sessions()
+                except Exception:
+                    pass
+
+        assert "sess-1" in panel._card_first_shown
+        assert panel._card_first_shown["sess-1"] == 1000.0
+
+    def test_inactive_session_stays_visible_within_window(self):
+        """Session stays visible within MIN_CARD_VISIBILITY window."""
+        panel = SessionsPanel()
+        # Simulate session was first shown at t=1000
+        panel._card_first_shown = {"sess-1": 1000.0}
+
+        # Session is now inactive (last_modified > 5min ago)
+        inactive_session = self.make_session_with_id("sess-1", is_active=False, is_idle=False)
+
+        with patch("cdash.components.sessions.load_all_sessions") as mock_load:
+            mock_load.return_value = [inactive_session]
+            with patch("cdash.components.sessions.time.time") as mock_time:
+                # Current time is still within window (1000 + 60 = 1060 < 1000 + 180)
+                mock_time.return_value = 1060.0
+                try:
+                    panel.refresh_sessions()
+                except Exception:
+                    pass
+
+        # Session should still be tracked (not removed from dict)
+        assert "sess-1" in panel._card_first_shown
+
+    def test_inactive_session_removed_after_window_expires(self):
+        """Session is removed after MIN_CARD_VISIBILITY window expires."""
+        panel = SessionsPanel()
+        # Simulate session was first shown at t=1000
+        panel._card_first_shown = {"sess-1": 1000.0}
+
+        # Session is now inactive
+        inactive_session = self.make_session_with_id("sess-1", is_active=False, is_idle=False)
+
+        with patch("cdash.components.sessions.load_all_sessions") as mock_load:
+            mock_load.return_value = [inactive_session]
+            with patch("cdash.components.sessions.time.time") as mock_time:
+                # Current time is past window (1000 + 200 > 1000 + 180)
+                mock_time.return_value = 1000.0 + MIN_CARD_VISIBILITY + 20
+                try:
+                    panel.refresh_sessions()
+                except Exception:
+                    pass
+
+        # Session should be removed from tracking
+        assert "sess-1" not in panel._card_first_shown
+
+    def test_idle_session_updates_tracking(self):
+        """Idle sessions keep their original first_shown time."""
+        panel = SessionsPanel()
+        # Session was first shown at t=1000
+        panel._card_first_shown = {"sess-1": 1000.0}
+
+        # Session is now idle
+        idle_session = self.make_session_with_id("sess-1", is_active=False, is_idle=True)
+
+        with patch("cdash.components.sessions.load_all_sessions") as mock_load:
+            mock_load.return_value = [idle_session]
+            with patch("cdash.components.sessions.time.time") as mock_time:
+                mock_time.return_value = 1100.0
+                try:
+                    panel.refresh_sessions()
+                except Exception:
+                    pass
+
+        # Original timestamp should be preserved
+        assert panel._card_first_shown["sess-1"] == 1000.0
+
+    def test_min_card_visibility_constant(self):
+        """MIN_CARD_VISIBILITY is 180 seconds (3 minutes)."""
+        assert MIN_CARD_VISIBILITY == 180.0
