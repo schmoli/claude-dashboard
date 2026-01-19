@@ -270,20 +270,53 @@ github.com/schmoli/claude-   # with domain (truncated)
 | `⏱3h` | `3 hours` or `duration: 3h` | Readable or labeled |
 | `140m/116t` | `140 msgs • 116 tools` | Full words, separator |
 
-### Recommended: Option H5
+### Recommended: Option H6e
 
-**H5** maximizes information density with meaningful data:
+**H6e** - GitHub/project as title, branch prominent, stats in footer:
+
 ```
-│ ● claude-dashboard                       schmoli/claude-dashboard  ACTIVE│
-│   ~/code/schmoli/claude-dashboard        main • 3h 12m   ████████░░ 82% │
+╭─────────────────────────────────────────────────────────────────────────╮
+│ ● schmoli/claude-dashboard                                       ACTIVE │
+│   claude/redesign-sessions-card-HUk0Z                   3h   ██████░░ 82%│
+├─────────────────────────────────────────────────────────────────────────┤
+│   "Implement the following plan: # Plan: Enrich Header Layout ## G..." │
+│ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─│
+│   ⚙ Bash    cd /Users/toli/code/schmoli/claude-dashb...        now    │
+│   📖 Read    src/cdash/components/sessions.py                    2m    │
+│   ✏️ Edit    CLAUDE.md                                            5m    │
+│ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─│
+│   140 msgs • 116 tools                        ~/code/schmoli/claude-da…│
+╰─────────────────────────────────────────────────────────────────────────╯
 ```
 
-**Why H5:**
-- GitHub repo lets you quickly identify which codebase (useful with forks/worktrees)
-- Context % is critical for knowing when you're approaching limits
-- Full path disambiguates similar project names
-- Status + duration give activity at-a-glance
-- Still leaves room for message/tool counts in footer or tool history section
+**Fallback when no GitHub repo (uses project name instead):**
+```
+╭─────────────────────────────────────────────────────────────────────────╮
+│ ● my-local-project                                               ACTIVE │
+│   feature/long-branch-name-here                         3h   ██████░░ 82%│
+├─────────────────────────────────────────────────────────────────────────┤
+```
+
+**H6e Breakdown:**
+```
+Line 1: ● schmoli/claude-dashboard                                 ACTIVE
+        │ └─ GitHub repo (or project name if no repo)              └─ status
+        └─ status indicator
+
+Line 2:   claude/redesign-sessions-card-HUk0Z             3h   ██████░░ 82%
+          └─ branch (up to ~40 chars)                     │    └─ context bar
+                                                          └─ duration
+
+Footer:   140 msgs • 116 tools                  ~/code/schmoli/claude-da…
+          └─ message & tool counts              └─ path (truncated from right)
+```
+
+**Why H6e:**
+- **Title priority:** GitHub repo supersedes project name (identifies codebase in forks/worktrees)
+- **Branch prominence:** ~40 chars for long feature branch names
+- **Context bar:** Critical for knowing when approaching 200k limit
+- **Stats in footer:** Keeps header clean, groups related info with path
+- **Path in footer:** Available but de-prioritized (truncated if needed)
 
 ### Data Requirements
 
