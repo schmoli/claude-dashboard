@@ -154,7 +154,7 @@ class TestHeaderPanelCodeChanged:
             with console.capture() as capture:
                 console.print(tagline.render())
             rendered = capture.get()
-            assert "3 files changed" in rendered
+            assert "3f changed" in rendered
 
     @pytest.mark.asyncio
     async def test_code_changed_indicator_singular(self):
@@ -174,7 +174,7 @@ class TestHeaderPanelCodeChanged:
             with console.capture() as capture:
                 console.print(tagline.render())
             rendered = capture.get()
-            assert "1 files changed" in rendered
+            assert "1f changed" in rendered
 
     @pytest.mark.asyncio
     async def test_code_changed_indicator_hides(self):

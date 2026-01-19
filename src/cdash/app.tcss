@@ -66,17 +66,19 @@ DataTable:focus > .datatable--cursor {
 }
 
 /* ============================================
-   FOOTER
+   FOOTER (cockpit instrument bar)
    ============================================ */
 
 Footer {
-    background: $surface;
+    background: $background;
     color: $text-muted;
+    border-top: solid #555555;
 }
 
 FooterKey > .footer-key--key {
-    background: $primary-darken-2;
-    color: $text;
+    background: $panel;
+    color: $primary;
+    text-style: bold;
 }
 
 FooterKey > .footer-key--description {

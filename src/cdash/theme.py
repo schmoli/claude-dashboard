@@ -13,10 +13,10 @@ GREEN = "#788C5D"  # Success
 AMBER = "#E5B567"  # Warning
 RED = "#CC6666"  # Error/danger
 TEXT = "#E8E6DC"  # Warm white text
-TEXT_MUTED = "#B0AEA5"  # Mid gray
-BG = "#1A1918"  # Deep charcoal
-SURFACE = "#252422"  # Elevated surface
-PANEL = "#302E2B"  # Card background
+TEXT_MUTED = "#6A6862"  # Mid gray (dimmer for contrast)
+BG = "#000000"  # True black - cockpit background
+SURFACE = "#0D0D0C"  # Barely elevated - panel interiors
+PANEL = "#181716"  # Card/instrument panel background
 
 # Nerd Font icons for tabs
 TAB_ICONS = {

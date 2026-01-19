@@ -1,128 +1,170 @@
-"""k9s-style header panel for the dashboard."""
+"""Cockpit-style header panel with individual instrument gauges."""
+
+import time
 
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.widgets import Static
 
-from cdash.components.indicators import RefreshIndicator
 from cdash.data.resources import get_resource_stats
-from cdash.theme import AMBER, CORAL, GREEN, TEXT_MUTED
+from cdash.theme import AMBER, CORAL, GREEN, RED, TEXT_MUTED
 
-# ASCII art logo for claude-dash (fits in ~7 lines)
-LOGO = """\
-       __         __
-  ____/ /__ ____ / /
- / __/ / _ `(_-</ _ \\
- \\__/_/\\_,_/___/_//_/
-      ⬡ dashboard"""
+# Border color for visibility on black
+BORDER = "#555555"
+BORDER_ACCENT = "#D97757"  # coral for logo panel
 
 
-class HeaderPanel(Vertical):
-    """k9s-style header with multi-row stats display.
+class HeaderPanel(Horizontal):
+    """Cockpit-style header with individual instrument gauges.
 
     Layout:
-    ┌─────────────────────────────────────────────────────────┐
-    │ Sessions:   3 active              │        __         __│
-    │ Today:      42m / 128t            │   ____/ /__ ____ / /│
-    │ CPU:        15%                   │  / __/ / _ `(_-</ _ │
-    │ MEM:        1.2G                  │  \\__/_/\\_,_/___/_//_│
-    │ Sync:       ● live  ⟳ 2f changed  │       ⬡ dashboard   │
-    └─────────────────────────────────────────────────────────┘
+    ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌──────────────┐ ┌─────────────┐
+    │ SESSIONS│ │ MESSAGES│ │  TOOLS  │ │   CPU   │ │     NAV      │ │    LOGO     │
+    │    2    │ │  1.2k   │ │   890   │ │ ████░░  │ │ ▸ 1 overview │ │  ___/ /__   │
+    └─────────┘ └─────────┘ └─────────┘ └─────────┘ └──────────────┘ └─────────────┘
     """
 
     DEFAULT_CSS = """
     HeaderPanel {
         dock: top;
-        height: 6;
-        background: $surface;
+        height: 5;
+        background: $background;
         padding: 0 1;
     }
 
-    HeaderPanel .header-row {
+    HeaderPanel .gauge {
+        border: round #555555;
+        background: $surface;
+        width: 12;
+        height: 100%;
+        margin-right: 1;
+        padding: 0 1;
+    }
+
+    HeaderPanel .gauge-wide {
+        border: round #555555;
+        background: $surface;
+        width: 16;
+        height: 100%;
+        margin-right: 1;
+        padding: 0 1;
+    }
+
+    HeaderPanel #nav-panel {
+        border: round #555555;
+        background: $surface;
+        width: 18;
+        height: 100%;
+        margin-right: 1;
+        padding: 0 1;
+    }
+
+    HeaderPanel #logo-panel {
+        border: round #D97757;
+        background: $surface;
+        width: 1fr;
+        height: 100%;
+        padding: 0 1;
+    }
+
+    HeaderPanel .gauge-label {
         height: 1;
-        width: 100%;
-    }
-
-    HeaderPanel .stats-col {
-        width: 1fr;
-        padding: 0 2;
-    }
-
-    HeaderPanel .nav-item {
-        width: 1fr;
-        padding-left: 4;
-    }
-
-    HeaderPanel .logo-col {
-        width: auto;
-        min-width: 26;
-        color: $warning;
-    }
-
-    HeaderPanel .stat-label {
-        width: 12;
-        color: $secondary;
-    }
-
-    HeaderPanel .stat-value {
-        width: 12;
-    }
-
-    HeaderPanel .logo-line {
-        width: auto;
+        color: #888888;
         text-style: bold;
     }
 
-    HeaderPanel .indicator-row {
+    HeaderPanel .gauge-value {
         height: 1;
+        text-align: center;
+    }
+
+    HeaderPanel .gauge-bar {
+        height: 1;
+    }
+
+    HeaderPanel .nav-row {
+        height: 1;
+    }
+
+    HeaderPanel .logo-line {
+        color: $warning;
+        text-style: bold;
+    }
+
+    HeaderPanel .logo-tagline {
+        color: $primary;
+        text-style: bold;
     }
     """
 
+    def __init__(self) -> None:
+        super().__init__()
+        self._last_refresh = time.time()
+
     def compose(self) -> ComposeResult:
-        logo_lines = LOGO.splitlines()
+        # Gauge 1: Sessions
+        with Vertical(id="sessions-gauge", classes="gauge"):
+            yield Static("SESSIONS", classes="gauge-label")
+            yield Static(f"[{TEXT_MUTED}]0[/]", id="stat-sessions", classes="gauge-value")
+            yield Static("", classes="gauge-bar")
 
-        # Navigation items for middle column
-        nav_items = [
-            ("1", "overview", "nav-1"),
-            ("2", "github", "nav-2"),
-            ("3", "plugins", "nav-3"),
-            ("4", "mcp", "nav-4"),
-        ]
+        # Gauge 2: CPU with bar
+        with Vertical(id="cpu-gauge", classes="gauge"):
+            yield Static("CPU", classes="gauge-label")
+            yield Static(f"[{TEXT_MUTED}]0%[/]", id="stat-cpu", classes="gauge-value")
+            yield Static("░░░░░░░░", id="cpu-bar", classes="gauge-bar")
 
-        # Row 1: Sessions / Nav 1 / Logo line 1
-        with Horizontal(classes="header-row"):
-            yield Static("Sessions:", classes="stat-label")
-            yield Static("0 active", id="stat-sessions", classes="stat-value")
-            yield Static(f"[bold {CORAL}]▸ 1 overview[/]", id="nav-1", classes="nav-item")
-            yield Static(logo_lines[0] if logo_lines else "", classes="logo-line logo-col")
+        # Gauge 3: Memory
+        with Vertical(id="mem-gauge", classes="gauge"):
+            yield Static("MEM", classes="gauge-label")
+            yield Static(f"[{TEXT_MUTED}]0M[/]", id="stat-mem", classes="gauge-value")
+            yield Static("", classes="gauge-bar")
 
-        # Row 2: Today / Nav 2 / Logo line 2
-        with Horizontal(classes="header-row"):
-            yield Static("Today:", classes="stat-label")
-            yield Static("0m / 0t", id="stat-today", classes="stat-value")
-            yield Static(f"[{TEXT_MUTED}]  2 github[/]", id="nav-2", classes="nav-item")
-            yield Static(logo_lines[1] if len(logo_lines) > 1 else "", classes="logo-line logo-col")
+        # Gauge 4: Disk (~/.claude size)
+        with Vertical(id="disk-gauge", classes="gauge"):
+            yield Static("DISK", classes="gauge-label")
+            yield Static(f"[{TEXT_MUTED}]0M[/]", id="stat-disk", classes="gauge-value")
+            yield Static("", classes="gauge-bar")
 
-        # Row 3: CPU / Nav 3 / Logo line 3
-        with Horizontal(classes="header-row"):
-            yield Static("CPU:", classes="stat-label")
-            yield Static("0%", id="stat-cpu", classes="stat-value")
-            yield Static(f"[{TEXT_MUTED}]  3 plugins[/]", id="nav-3", classes="nav-item")
-            yield Static(logo_lines[2] if len(logo_lines) > 2 else "", classes="logo-line logo-col")
+        # Gauge 5: Rate (tools/min)
+        with Vertical(id="rate-gauge", classes="gauge"):
+            yield Static("RATE", classes="gauge-label")
+            yield Static(f"[{TEXT_MUTED}]0/m[/]", id="stat-rate", classes="gauge-value")
+            yield Static("", classes="gauge-bar")
 
-        # Row 4: MEM / Nav 4 / Logo line 4
-        with Horizontal(classes="header-row"):
-            yield Static("MEM:", classes="stat-label")
-            yield Static("0M", id="stat-mem", classes="stat-value")
-            yield Static(f"[{TEXT_MUTED}]  4 mcp[/]", id="nav-4", classes="nav-item")
-            yield Static(logo_lines[3] if len(logo_lines) > 3 else "", classes="logo-line logo-col")
+        # Navigation panel
+        with Vertical(id="nav-panel"):
+            yield Static(f"[bold {CORAL}]▸ 1 overview[/]", id="nav-1", classes="nav-row")
+            yield Static(f"[{TEXT_MUTED}]  2 github[/]", id="nav-2", classes="nav-row")
+            yield Static(f"[{TEXT_MUTED}]  3 plugins[/]", id="nav-3", classes="nav-row")
 
-        # Row 5: Sync indicator / Logo line 5 (or reload hint)
-        with Horizontal(classes="header-row indicator-row"):
-            yield Static("Sync:", classes="stat-label")
-            yield RefreshIndicator(id="header-refresh")
-            yield Static("", classes="stats-col")
-            yield Static(logo_lines[4] if len(logo_lines) > 4 else "", id="logo-tagline", classes="logo-line logo-col")
+        # Logo panel
+        with Vertical(id="logo-panel"):
+            yield Static("[bold #E5B567] ___/ /_ ___ / /[/]", classes="logo-line")
+            yield Static("[bold #E5B567]/ __/ _ `(_-</ _ \\[/]", classes="logo-line")
+            yield Static("⬡ dashboard", id="logo-tagline", classes="logo-tagline")
+
+    def _format_count(self, n: int) -> str:
+        """Format large numbers compactly (1234 -> 1.2k)."""
+        if n >= 1000:
+            return f"{n/1000:.1f}k"
+        return str(n)
+
+    def _render_bar(self, percent: float) -> str:
+        """Render a percentage as a colored bar."""
+        bar_width = 8
+        filled = int(percent / 100 * bar_width)
+        filled = min(bar_width, max(0, filled))
+        empty = bar_width - filled
+
+        if percent > 80:
+            color = RED
+        elif percent > 50:
+            color = AMBER
+        else:
+            color = GREEN
+
+        return f"[{color}]{'█' * filled}[/][#333333]{'░' * empty}[/]"
 
     def update_stats(
         self,
@@ -133,14 +175,24 @@ class HeaderPanel(Vertical):
         """Update session and activity stats."""
         try:
             sessions_widget = self.query_one("#stat-sessions", Static)
-            today_widget = self.query_one("#stat-today", Static)
 
             if active_count > 0:
-                sessions_widget.update(f"[{GREEN}]{active_count} active[/]")
+                sessions_widget.update(f"[bold {GREEN}]{active_count}[/]")
             else:
-                sessions_widget.update(f"[{TEXT_MUTED}]0 active[/]")
+                sessions_widget.update(f"[{TEXT_MUTED}]0[/]")
 
-            today_widget.update(f"[{CORAL}]{msgs_today}[/]m / [{CORAL}]{tools_today}[/]t")
+            # Calculate rate (tools per minute since start of day)
+            # Simple approximation: tools_today / minutes since midnight
+            from datetime import datetime
+            now = datetime.now()
+            mins_since_midnight = now.hour * 60 + now.minute
+            if mins_since_midnight > 0 and tools_today > 0:
+                rate = tools_today / mins_since_midnight
+                rate_widget = self.query_one("#stat-rate", Static)
+                if rate >= 1:
+                    rate_widget.update(f"[{CORAL}]{rate:.0f}/m[/]")
+                else:
+                    rate_widget.update(f"[{CORAL}]{rate:.1f}/m[/]")
         except Exception:
             pass
 
@@ -150,35 +202,42 @@ class HeaderPanel(Vertical):
 
         try:
             cpu_widget = self.query_one("#stat-cpu", Static)
+            cpu_bar = self.query_one("#cpu-bar", Static)
             mem_widget = self.query_one("#stat-mem", Static)
+            disk_widget = self.query_one("#stat-disk", Static)
 
-            cpu_display = min(stats.cpu_percent, 999)
+            cpu_pct = min(stats.cpu_percent, 100)
+
             if stats.memory_mb >= 1024:
                 mem_display = f"{stats.memory_mb / 1024:.1f}G"
             else:
                 mem_display = f"{stats.memory_mb:.0f}M"
 
-            cpu_widget.update(f"[{CORAL}]{cpu_display:.0f}%[/]")
+            # Format ~/.claude size
+            if stats.claude_dir_mb >= 1024:
+                disk_display = f"{stats.claude_dir_mb / 1024:.1f}G"
+            else:
+                disk_display = f"{stats.claude_dir_mb:.0f}M"
+
+            cpu_widget.update(f"[{CORAL}]{cpu_pct:.0f}%[/]")
+            cpu_bar.update(self._render_bar(cpu_pct))
             mem_widget.update(f"[{CORAL}]{mem_display}[/]")
+            disk_widget.update(f"[{CORAL}]{disk_display}[/]")
         except Exception:
             pass
 
     def mark_refreshed(self) -> None:
-        """Mark data as just refreshed."""
-        try:
-            indicator = self.query_one("#header-refresh", RefreshIndicator)
-            indicator.mark_refreshed()
-        except Exception:
-            pass
+        """Mark data as just refreshed (update timestamp)."""
+        self._last_refresh = time.time()
 
     def show_code_changed(self, changed: bool, file_count: int = 0) -> None:
         """Show/hide the code changed indicator in logo tagline."""
         try:
             widget = self.query_one("#logo-tagline", Static)
             if changed:
-                widget.update(f"[bold {CORAL}]⟳ {file_count} files changed (r)[/]")
+                widget.update(f"[bold {CORAL}]⟳ {file_count}f changed[/]")
             else:
-                widget.update(LOGO.splitlines()[4])
+                widget.update("⬡ dashboard")
         except Exception:
             pass
 

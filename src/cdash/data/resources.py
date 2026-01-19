@@ -19,6 +19,7 @@ class ResourceStats:
     cpu_percent: float  # combined CPU across all processes
     memory_mb: float  # combined memory in MB
     memory_percent: float  # combined memory as % of system RAM
+    claude_dir_mb: float = 0.0  # ~/.claude directory size in MB
 
 
 def find_claude_processes() -> list[psutil.Process]:
@@ -86,11 +87,30 @@ def get_resource_stats(use_cache: bool = True) -> ResourceStats:
     total_mem = psutil.virtual_memory()
     memory_percent = (total_memory_bytes / total_mem.total) * 100 if total_mem.total else 0
 
+    # Get ~/.claude directory size
+    claude_dir_mb = 0.0
+    try:
+        import os
+        claude_dir = os.path.expanduser("~/.claude")
+        if os.path.isdir(claude_dir):
+            total_bytes = 0
+            for dirpath, dirnames, filenames in os.walk(claude_dir):
+                for f in filenames:
+                    fp = os.path.join(dirpath, f)
+                    try:
+                        total_bytes += os.path.getsize(fp)
+                    except (OSError, IOError):
+                        pass
+            claude_dir_mb = total_bytes / (1024 * 1024)
+    except Exception:
+        pass
+
     stats = ResourceStats(
         process_count=len(procs),
         cpu_percent=total_cpu,
         memory_mb=total_memory_mb,
         memory_percent=memory_percent,
+        claude_dir_mb=claude_dir_mb,
     )
 
     # Update cache

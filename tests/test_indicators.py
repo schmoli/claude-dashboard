@@ -89,12 +89,10 @@ class TestRefreshIndicatorIntegration:
     """Integration tests for RefreshIndicator in panels."""
 
     @pytest.mark.asyncio
-    async def test_header_has_refresh_indicator(self):
-        """HeaderPanel contains refresh indicator."""
-        from cdash.app import ClaudeDashApp
+    async def test_header_has_mark_refreshed(self):
+        """HeaderPanel has mark_refreshed method for tracking refresh time."""
+        from cdash.components.header import HeaderPanel
 
-        app = ClaudeDashApp()
-        async with app.run_test():
-            # Find the indicator in header
-            indicator = app.query_one("#header-refresh", RefreshIndicator)
-            assert indicator is not None
+        header = HeaderPanel()
+        assert hasattr(header, "mark_refreshed")
+        assert callable(header.mark_refreshed)

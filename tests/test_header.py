@@ -24,13 +24,13 @@ class TestHeaderPanel:
             header = app.query_one(HeaderPanel)
             header.update_stats(active_count=3, msgs_today=847, tools_today=142)
 
-            # Verify widget was updated (check the text contains expected values)
+            # Verify widgets were updated (new individual gauge layout)
             sessions_widget = header.query_one("#stat-sessions")
-            today_widget = header.query_one("#stat-today")
+            rate_widget = header.query_one("#stat-rate")
 
             # Widgets should have been updated
             assert sessions_widget is not None
-            assert today_widget is not None
+            assert rate_widget is not None
 
     @pytest.mark.asyncio
     async def test_header_has_mark_refreshed(self):

@@ -24,16 +24,187 @@ def format_project_display(project_name: str | None) -> str:
     return project_name.split("/")[-1]
 
 
-class SessionCard(Static):
-    """Multi-line session card that updates in-place (no flashing).
+class SectionHeader(Static):
+    """Section divider: ── ACTIVE ───────────────────────────── [2] ──"""
 
-    Layout (3 lines):
-    ┌─────────────────────────────────────────────────────────────────┐
-    │ ● project-name          ACT   ⏱29m   68/58                      │
-    │   ⚙ Bash                                                        │
-    │   "Implement the following plan: # k9s-Style Dashboard..."      │
-    └─────────────────────────────────────────────────────────────────┘
+    DEFAULT_CSS = """
+    SectionHeader {
+        height: 1;
+        margin: 0 1 1 1;
+        color: $text-muted;
+    }
     """
+
+    def __init__(self, label: str, count: int = 0, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._label = label
+        self._count = count
+
+    def update_count(self, count: int) -> None:
+        """Update the count and refresh."""
+        self._count = count
+        self.refresh()
+
+    def render(self) -> str:
+        left = f"── {self._label} "
+        right = f" [{self._count}] ──"
+        fill_width = 60 - len(left) - len(right)
+        fill = "─" * max(0, fill_width)
+        return f"[{TEXT_MUTED}]{left}{fill}{right}[/]"
+
+
+class SessionCardFrame(Vertical):
+    """Framed session panel with CSS round border.
+
+    Cockpit-style instrument panel displaying live session state.
+    """
+
+    DEFAULT_CSS = """
+    SessionCardFrame {
+        border: round #555555;
+        padding: 0 1;
+        margin: 0 1 1 1;
+        background: $surface;
+        height: auto;
+    }
+    SessionCardFrame.active {
+        border: round $success;
+    }
+    SessionCardFrame.idle {
+        border: round $warning;
+    }
+    """
+
+    def __init__(self, session: Session, card_id: str) -> None:
+        super().__init__(id=card_id)
+        self._session = session
+        self._content = Static("")
+        self._update_classes()
+
+    def _update_classes(self) -> None:
+        """Update CSS classes based on session state."""
+        self.remove_class("active", "idle")
+        if self._session.is_active:
+            self.add_class("active")
+        elif self._session.is_idle:
+            self.add_class("idle")
+
+    def compose(self) -> ComposeResult:
+        self._content.update(self._render_content())
+        yield self._content
+
+    def update_session(self, session: Session) -> None:
+        """Update card with new session data (in-place, no remount)."""
+        self._session = session
+        self._update_classes()
+        self._content.update(self._render_content())
+
+    def _render_context_bar(self, percentage: float) -> str:
+        """Render context usage bar with color coding."""
+        filled = int(percentage / 100 * 8)
+        filled = min(8, max(0, filled))
+        empty = 8 - filled
+
+        if percentage > 80:
+            color = RED
+        elif percentage > 50:
+            color = AMBER
+        else:
+            color = GREEN
+
+        bar = "█" * filled + "░" * empty
+        return f"[{color}]{bar}[/] [{TEXT_MUTED}]{percentage:.0f}%[/]"
+
+    def _format_path_display(self, path: str | None) -> str:
+        """Format path with home substitution."""
+        if not path:
+            return ""
+        import os
+        home = os.path.expanduser("~")
+        if path.startswith(home):
+            path = "~" + path[len(home):]
+        if len(path) > 35:
+            path = path[:32] + "..."
+        return path
+
+    def _render_content(self) -> str:
+        """Render session card content with tree connectors for tools."""
+        s = self._session
+        lines = []
+
+        # Line 1: GitHub repo (or project) + status badge
+        if s.is_active:
+            status = f"[bold {GREEN}]●[/]"
+            badge = f"[{GREEN}]ACTIVE[/]"
+        elif s.is_idle:
+            status = f"[bold {AMBER}]◐[/]"
+            idle_mins = int((time.time() - s.last_modified) // 60)
+            badge = f"[{AMBER}]IDLE {idle_mins}m[/]"
+        else:
+            status = "[dim]○[/]"
+            badge = "[dim]DONE[/]"
+
+        title = s.github_repo or format_project_display(s.project_name)
+        lines.append(f"{status} [bold]{title}[/]  {badge}")
+
+        # Line 2: branch + duration + context bar
+        branch = s.git_branch[:40] if s.git_branch else ""
+        dur = format_duration(s.started_at)
+        duration = f"{dur}" if dur else ""
+        context_bar = self._render_context_bar(s.context_percentage)
+        lines.append(f"  [{TEXT_MUTED}]{branch}[/]  {duration}  {context_bar}")
+
+        # Line 3: prompt preview
+        if s.full_prompt:
+            prompt = s.full_prompt.replace("\n", " ").strip()
+            if len(prompt) > 65:
+                prompt = prompt[:62] + "..."
+            lines.append(f'  [{TEXT_MUTED}]"{prompt}"[/]')
+        else:
+            lines.append(f"  [{TEXT_MUTED}](no prompt)[/]")
+
+        # Lines 4-6: Tool history with tree connectors
+        tool_icons = {
+            "Bash": "⚙",
+            "Read": "📖",
+            "Edit": "✏️",
+            "Write": "📝",
+            "Grep": "🔍",
+            "Glob": "📁",
+            "Task": "🤖",
+            "WebFetch": "🌐",
+            "WebSearch": "🔎",
+        }
+
+        if s.recent_tool_calls:
+            num_tools = len(s.recent_tool_calls)
+            for i, tc in enumerate(s.recent_tool_calls):
+                is_last = (i == num_tools - 1)
+                prefix = "└─" if is_last else "├─"
+                icon = tool_icons.get(tc.tool_name, "⚙")
+                context = tc.context[:45] + "..." if len(tc.context) > 45 else tc.context
+                rel_time = format_relative_time(tc.timestamp)
+                lines.append(
+                    f"  {prefix} [{CORAL}]{icon} {tc.tool_name:<6}[/] "
+                    f"[{TEXT_MUTED}]{context:<45}[/] "
+                    f"[{TEXT_MUTED}]{rel_time:>4}[/]"
+                )
+        elif s.current_tool:
+            icon = tool_icons.get(s.current_tool, "⚙")
+            context = s.current_tool_input[:45] + "..." if len(s.current_tool_input or "") > 45 else (s.current_tool_input or "")
+            lines.append(f"  └─ [{CORAL}]{icon} {s.current_tool}[/] [{TEXT_MUTED}]{context}[/]")
+
+        # Footer: stats + path
+        stats = f"{s.message_count} msgs • {s.tool_count} tools"
+        path = self._format_path_display(s.project_name)
+        lines.append(f"  [{TEXT_MUTED}]{stats}  {path}[/]")
+
+        return "\n".join(lines)
+
+
+# Legacy alias for backwards compatibility
+class SessionCard(Static):
+    """Legacy session card - use SessionCardFrame for new code."""
 
     DEFAULT_CSS = """
     SessionCard {
@@ -188,41 +359,35 @@ class SessionCard(Static):
 
 
 class SessionsPanel(Vertical):
-    """Main sessions panel with spacious multi-line cards.
+    """Cockpit-style sessions panel with grouped sections.
 
+    Displays sessions as instrument panels grouped by state (active/idle).
     Uses in-place updates to avoid flashing on refresh.
     """
 
     DEFAULT_CSS = """
     SessionsPanel {
         height: 1fr;
-        padding: 0 1;
+        padding: 0;
         background: $background;
-    }
-    SessionsPanel > .section-title {
-        text-align: center;
-        color: $secondary;
-        text-style: bold;
-        height: 1;
-        margin-bottom: 1;
     }
     SessionsPanel > VerticalScroll {
         height: 1fr;
     }
-    SessionsPanel > .no-sessions {
+    SessionsPanel .no-sessions {
         text-align: center;
         color: $text-muted;
         text-style: italic;
         padding: 2;
+        margin: 0 1;
     }
     """
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
-        self._cards: dict[str, SessionCard] = {}
+        self._cards: dict[str, SessionCardFrame] = {}
 
     def compose(self) -> ComposeResult:
-        yield Static("── sessions(all)[0] ──", id="section-title", classes="section-title")
         yield VerticalScroll(id="cards-container")
 
     def on_mount(self) -> None:
@@ -233,22 +398,10 @@ class SessionsPanel(Vertical):
         """Refresh sessions with in-place card updates (no flashing)."""
         sessions = load_all_sessions()
 
-        # Filter to active and idle only
+        # Filter to active and idle, sorted: active first, then idle
         active = [s for s in sessions if s.is_active]
         idle = [s for s in sessions if s.is_idle]
         combined = active + idle
-
-        # Update title
-        try:
-            title = self.query_one("#section-title", Static)
-            if active:
-                title.update(f"── sessions(active)[{len(active)}] ──")
-            elif combined:
-                title.update(f"── sessions(idle)[{len(combined)}] ──")
-            else:
-                title.update("── sessions(none)[0] ──")
-        except Exception:
-            pass
 
         try:
             container = self.query_one("#cards-container", VerticalScroll)
@@ -265,17 +418,36 @@ class SessionsPanel(Vertical):
                 self._cards[sid].remove()
                 del self._cards[sid]
 
-        # Update or create cards
-        for i, session in enumerate(combined):
-            sid = session.session_id
-            if sid in self._cards:
-                # Update existing card in-place
-                self._cards[sid].update_session(session)
-            else:
-                # Create new card
-                card = SessionCard(session, card_id=f"card-{sid}")
-                self._cards[sid] = card
-                container.mount(card)
+        # Check if order matches - get current DOM order
+        current_dom_order = [w.id.replace("card-", "") for w in container.query(SessionCardFrame)]
+        desired_order = [s.session_id for s in combined]
+
+        # If order doesn't match, remount all cards in correct order
+        if current_dom_order != desired_order:
+            # Remove all cards from DOM (but keep in dict)
+            for card in list(container.query(SessionCardFrame)):
+                card.remove()
+
+            # Remount in correct order
+            for session in combined:
+                sid = session.session_id
+                if sid in self._cards:
+                    self._cards[sid].update_session(session)
+                    container.mount(self._cards[sid])
+                else:
+                    card = SessionCardFrame(session, card_id=f"card-{sid}")
+                    self._cards[sid] = card
+                    container.mount(card)
+        else:
+            # Order matches, just update in-place
+            for session in combined:
+                sid = session.session_id
+                if sid in self._cards:
+                    self._cards[sid].update_session(session)
+                else:
+                    card = SessionCardFrame(session, card_id=f"card-{sid}")
+                    self._cards[sid] = card
+                    container.mount(card)
 
         # Handle empty state
         if not combined and not self._cards:
@@ -284,7 +456,6 @@ class SessionsPanel(Vertical):
             except Exception:
                 container.mount(Static("No active sessions", classes="no-sessions"))
         else:
-            # Remove empty state message if sessions exist
             for widget in container.query(".no-sessions"):
                 widget.remove()
 

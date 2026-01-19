@@ -50,10 +50,12 @@ class TestSessionsPanel:
             panel = app.query_one(SessionsPanel)
             assert panel is not None
 
-    async def test_sessions_panel_has_title(self):
-        """Sessions panel shows title."""
+    async def test_sessions_panel_has_container(self):
+        """Sessions panel has scrollable card container."""
+        from textual.containers import VerticalScroll
+
         app = ClaudeDashApp()
         async with app.run_test():
-            # Check for the section title
-            title = app.query_one(".section-title")
-            assert title is not None
+            panel = app.query_one(SessionsPanel)
+            container = panel.query_one("#cards-container", VerticalScroll)
+            assert container is not None
