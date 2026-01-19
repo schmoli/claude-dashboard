@@ -512,3 +512,45 @@ def get_active_sessions() -> list[Session]:
         List of active Session objects
     """
     return [s for s in load_all_sessions() if s.is_active]
+
+
+def group_sessions_by_project(sessions: list[Session]) -> dict[str, list[Session]]:
+    """Group sessions by github_repo or project_name.
+
+    Sessions are grouped by github_repo if available, otherwise by project_name.
+    Within each group, sessions are sorted: active first, then idle, by recency.
+
+    Args:
+        sessions: List of sessions to group
+
+    Returns:
+        Dict mapping project key to list of sessions, ordered by most recent activity
+    """
+    from collections import OrderedDict
+
+    groups: dict[str, list[Session]] = {}
+
+    for session in sessions:
+        # Use github_repo if available, otherwise project_name
+        key = session.github_repo or session.project_name
+        if key not in groups:
+            groups[key] = []
+        groups[key].append(session)
+
+    # Sort sessions within each group: active first, then idle, by recency
+    for key in groups:
+        groups[key].sort(
+            key=lambda s: (
+                0 if s.is_active else (1 if s.is_idle else 2),  # active < idle < done
+                -s.last_modified,  # most recent first
+            )
+        )
+
+    # Sort groups by most recent session activity (newest first)
+    sorted_keys = sorted(
+        groups.keys(),
+        key=lambda k: max(s.last_modified for s in groups[k]),
+        reverse=True,
+    )
+
+    return OrderedDict((k, groups[k]) for k in sorted_keys)

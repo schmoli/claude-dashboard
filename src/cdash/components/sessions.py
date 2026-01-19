@@ -13,6 +13,7 @@ from cdash.data.sessions import (
     format_duration,
     format_file_size,
     format_relative_time,
+    group_sessions_by_project,
     load_all_sessions,
 )
 from cdash.theme import AMBER, CORAL, GREEN, RED, TEXT_MUTED
@@ -86,6 +87,91 @@ class SectionHeader(Static):
         return f"[{TEXT_MUTED}]{left}{fill}{right}[/]"
 
 
+class ProjectGroup(Vertical):
+    """Project group container with header and nested session cards.
+
+    Groups multiple sessions under a single project heading with
+    aggregate stats (session count, total messages, total tools).
+    """
+
+    DEFAULT_CSS = """
+    ProjectGroup {
+        border: round #555555;
+        margin: 0 1 1 1;
+        padding: 0;
+        height: auto;
+        background: $background;
+    }
+    ProjectGroup.has-active {
+        border: round $success;
+    }
+    ProjectGroup.has-idle {
+        border: round $warning;
+    }
+    ProjectGroup > .project-header {
+        padding: 0 1;
+        height: 1;
+    }
+    """
+
+    def __init__(self, project_key: str, sessions: list[Session], group_id: str) -> None:
+        super().__init__(id=group_id)
+        self._project_key = project_key
+        self._sessions = sessions
+        self._header = Static("", classes="project-header")
+        self._cards: dict[str, "SessionCardFrame"] = {}
+        self._update_classes()
+
+    def _update_classes(self) -> None:
+        """Update CSS classes based on session states."""
+        self.remove_class("has-active", "has-idle")
+        if any(s.is_active for s in self._sessions):
+            self.add_class("has-active")
+        elif any(s.is_idle for s in self._sessions):
+            self.add_class("has-idle")
+
+    def _render_header(self) -> str:
+        """Render project header with aggregate stats."""
+        total_msgs = sum(s.message_count for s in self._sessions)
+        total_tools = sum(s.tool_count for s in self._sessions)
+        count = len(self._sessions)
+        stats = f"{count} session{'s' if count != 1 else ''} • {total_msgs} msgs • {total_tools} tools"
+        return f"[bold]{self._project_key}[/]  [{TEXT_MUTED}]{stats}[/]"
+
+    def compose(self) -> ComposeResult:
+        self._header.update(self._render_header())
+        yield self._header
+        for session in self._sessions:
+            card = SessionCardFrame(session, card_id=f"card-{session.session_id}", nested=True)
+            self._cards[session.session_id] = card
+            yield card
+
+    def update_sessions(self, sessions: list[Session]) -> None:
+        """Update group with new session data."""
+        self._sessions = sessions
+        self._update_classes()
+        self._header.update(self._render_header())
+
+        current_ids = {s.session_id for s in sessions}
+        existing_ids = set(self._cards.keys())
+
+        # Remove cards no longer in group
+        for sid in existing_ids - current_ids:
+            if sid in self._cards:
+                self._cards[sid].remove()
+                del self._cards[sid]
+
+        # Update or add cards
+        for session in sessions:
+            sid = session.session_id
+            if sid in self._cards:
+                self._cards[sid].update_session(session)
+            else:
+                card = SessionCardFrame(session, card_id=f"card-{sid}", nested=True)
+                self._cards[sid] = card
+                self.mount(card)
+
+
 class SessionCardFrame(Vertical):
     """Framed session panel with CSS round border.
 
@@ -106,21 +192,36 @@ class SessionCardFrame(Vertical):
     SessionCardFrame.idle {
         border: round $warning;
     }
+    SessionCardFrame.nested {
+        border: none;
+        margin: 0;
+        padding: 0 1;
+        border-top: solid #333333;
+    }
+    SessionCardFrame.nested.active {
+        border-top: solid $success;
+    }
+    SessionCardFrame.nested.idle {
+        border-top: solid $warning;
+    }
     """
 
-    def __init__(self, session: Session, card_id: str) -> None:
+    def __init__(self, session: Session, card_id: str, nested: bool = False) -> None:
         super().__init__(id=card_id)
         self._session = session
+        self._nested = nested
         self._content = Static("")
         self._update_classes()
 
     def _update_classes(self) -> None:
         """Update CSS classes based on session state."""
-        self.remove_class("active", "idle")
+        self.remove_class("active", "idle", "nested")
         if self._session.is_active:
             self.add_class("active")
         elif self._session.is_idle:
             self.add_class("idle")
+        if self._nested:
+            self.add_class("nested")
 
     def compose(self) -> ComposeResult:
         self._content.update(self._render_content())
@@ -165,7 +266,7 @@ class SessionCardFrame(Vertical):
         s = self._session
         lines = []
 
-        # Line 1: GitHub repo (or project) + status badge
+        # Status indicator and badge
         if s.is_active:
             status = f"[bold {GREEN}]●[/]"
             badge = f"[{GREEN}]ACTIVE[/]"
@@ -177,15 +278,20 @@ class SessionCardFrame(Vertical):
             status = "[dim]○[/]"
             badge = "[dim]DONE[/]"
 
-        title = s.github_repo or format_project_display(s.project_name)
-        lines.append(f"{status} [bold]{title}[/]  {badge}")
-
-        # Line 2: branch + duration + file size
-        branch = s.git_branch[:40] if s.git_branch else ""
         dur = format_duration(s.started_at)
-        duration = f"{dur}" if dur else ""
         file_size = format_file_size(s.context_chars)
-        lines.append(f"  [{TEXT_MUTED}]{branch}[/]  {duration}  💾 {file_size}")
+
+        if self._nested:
+            # Nested mode: status + duration + file size on first line
+            lines.append(f"{status} {badge}  {dur}  💾 {file_size}")
+        else:
+            # Full mode: project title + status badge
+            title = s.github_repo or format_project_display(s.project_name)
+            lines.append(f"{status} [bold]{title}[/]  {badge}")
+
+            # Line 2: branch + duration + file size
+            branch = s.git_branch[:40] if s.git_branch else ""
+            lines.append(f"  [{TEXT_MUTED}]{branch}[/]  {dur}  💾 {file_size}")
 
         # Line 3: prompt preview
         if s.full_prompt:
@@ -231,10 +337,13 @@ class SessionCardFrame(Vertical):
             context = trimmed[:45] + "..." if len(trimmed) > 45 else trimmed
             lines.append(f"  └─ [{CORAL}]{icon}{s.current_tool}[/] [{TEXT_MUTED}]{context}[/]")
 
-        # Footer: stats + path
+        # Footer: stats (+ path if not nested)
         stats = f"{s.message_count} msgs • {s.tool_count} tools"
-        path = self._format_path_display(s.project_name)
-        lines.append(f"  [{TEXT_MUTED}]{stats}  {path}[/]")
+        if self._nested:
+            lines.append(f"  [{TEXT_MUTED}]{stats}[/]")
+        else:
+            path = self._format_path_display(s.project_name)
+            lines.append(f"  [{TEXT_MUTED}]{stats}  {path}[/]")
 
         return "\n".join(lines)
 
@@ -400,9 +509,9 @@ class SessionCard(Static):
 
 
 class SessionsPanel(Vertical):
-    """Cockpit-style sessions panel with grouped sections.
+    """Cockpit-style sessions panel with project grouping.
 
-    Displays sessions as instrument panels grouped by state (active/idle).
+    Displays sessions grouped by project (github_repo or project_name).
     Uses in-place updates to avoid flashing on refresh.
     """
 
@@ -426,7 +535,7 @@ class SessionsPanel(Vertical):
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
-        self._cards: dict[str, SessionCardFrame] = {}
+        self._groups: dict[str, ProjectGroup] = {}
 
     def compose(self) -> ComposeResult:
         yield VerticalScroll(id="cards-container")
@@ -435,63 +544,68 @@ class SessionsPanel(Vertical):
         """Initial load."""
         self.refresh_sessions()
 
+    def _make_group_id(self, project_key: str) -> str:
+        """Create a safe DOM ID from project key."""
+        # Replace special chars with underscores for valid DOM ID
+        safe_key = project_key.replace("/", "_").replace(".", "_").replace("-", "_")
+        return f"group-{safe_key}"
+
     def refresh_sessions(self) -> None:
-        """Refresh sessions with in-place card updates (no flashing)."""
+        """Refresh sessions grouped by project (no flashing)."""
         sessions = load_all_sessions()
 
-        # Filter to active and idle, sorted: active first, then idle
-        active = [s for s in sessions if s.is_active]
-        idle = [s for s in sessions if s.is_idle]
-        combined = active + idle
+        # Filter to active and idle only
+        active_idle = [s for s in sessions if s.is_active or s.is_idle]
+
+        # Group by project
+        grouped = group_sessions_by_project(active_idle)
 
         try:
             container = self.query_one("#cards-container", VerticalScroll)
         except Exception:
             return
 
-        # Build set of current session IDs
-        current_ids = {s.session_id for s in combined}
-        existing_ids = set(self._cards.keys())
+        # Build set of current project keys
+        current_keys = set(grouped.keys())
+        existing_keys = set(self._groups.keys())
 
-        # Remove cards for sessions that no longer exist
-        for sid in existing_ids - current_ids:
-            if sid in self._cards:
-                self._cards[sid].remove()
-                del self._cards[sid]
+        # Remove groups for projects no longer present
+        for key in existing_keys - current_keys:
+            if key in self._groups:
+                self._groups[key].remove()
+                del self._groups[key]
 
         # Check if order matches - get current DOM order
-        current_dom_order = [w.id.replace("card-", "") for w in container.query(SessionCardFrame)]
-        desired_order = [s.session_id for s in combined]
+        current_dom_order = list(self._groups.keys())
+        desired_order = list(grouped.keys())
 
-        # If order doesn't match, remount all cards in correct order
+        # If order doesn't match, remount all groups in correct order
         if current_dom_order != desired_order:
-            # Remove all cards from DOM (but keep in dict)
-            for card in list(container.query(SessionCardFrame)):
-                card.remove()
+            # Remove all groups from DOM (but keep in dict)
+            for group in list(container.query(ProjectGroup)):
+                group.remove()
 
             # Remount in correct order
-            for session in combined:
-                sid = session.session_id
-                if sid in self._cards:
-                    self._cards[sid].update_session(session)
-                    container.mount(self._cards[sid])
+            for key, project_sessions in grouped.items():
+                if key in self._groups:
+                    self._groups[key].update_sessions(project_sessions)
+                    container.mount(self._groups[key])
                 else:
-                    card = SessionCardFrame(session, card_id=f"card-{sid}")
-                    self._cards[sid] = card
-                    container.mount(card)
+                    group = ProjectGroup(key, project_sessions, self._make_group_id(key))
+                    self._groups[key] = group
+                    container.mount(group)
         else:
             # Order matches, just update in-place
-            for session in combined:
-                sid = session.session_id
-                if sid in self._cards:
-                    self._cards[sid].update_session(session)
+            for key, project_sessions in grouped.items():
+                if key in self._groups:
+                    self._groups[key].update_sessions(project_sessions)
                 else:
-                    card = SessionCardFrame(session, card_id=f"card-{sid}")
-                    self._cards[sid] = card
-                    container.mount(card)
+                    group = ProjectGroup(key, project_sessions, self._make_group_id(key))
+                    self._groups[key] = group
+                    container.mount(group)
 
         # Handle empty state
-        if not combined and not self._cards:
+        if not grouped and not self._groups:
             try:
                 container.query_one(".no-sessions")
             except Exception:
