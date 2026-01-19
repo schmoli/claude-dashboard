@@ -1,8 +1,8 @@
-"""Plugins tab UI component with card-based grid and enable/disable support."""
+"""Plugins tab UI component with compact table rows and enable/disable support."""
 
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Grid, VerticalScroll
+from textual.containers import Horizontal, VerticalScroll
 from textual.message import Message
 from textual.reactive import reactive
 from textual.widget import Widget
@@ -17,62 +17,55 @@ from cdash.data.plugins import Plugin, find_installed_plugins
 from cdash.theme import GREEN, RED
 
 
-class PluginCard(Widget, can_focus=True):
-    """A focusable card widget representing a single plugin."""
+class PluginRow(Widget, can_focus=True):
+    """A single-line row representing a plugin with inline toggle."""
 
     DEFAULT_CSS = """
-    PluginCard {
-        width: 1fr;
-        height: auto;
-        min-height: 5;
-        padding: 1;
-        border: round #333333;
-        background: $panel;
+    PluginRow {
+        width: 100%;
+        height: 1;
+        padding: 0 1;
     }
 
-    PluginCard:focus {
-        border: round $primary;
+    PluginRow:focus {
+        background: $primary 20%;
     }
 
-    PluginCard.enabled {
-        border: round $success;
-        background: $panel;
+    PluginRow.enabled {
+        /* default styling */
     }
 
-    PluginCard.enabled:focus {
-        border: double $success;
+    PluginRow.disabled {
+        opacity: 0.6;
     }
 
-    PluginCard.disabled {
-        border: round $error;
-        background: $surface;
-        opacity: 0.7;
+    PluginRow > Horizontal {
+        width: 100%;
+        height: 1;
     }
 
-    PluginCard.disabled:focus {
-        border: double $error;
+    PluginRow .row-status {
+        width: 3;
     }
 
-    PluginCard > .card-header {
+    PluginRow .row-name {
+        width: 22;
         text-style: bold;
-        margin-bottom: 0;
     }
 
-    PluginCard > .card-version {
+    PluginRow .row-version {
+        width: 12;
         color: $text-muted;
     }
 
-    PluginCard > .card-source {
+    PluginRow .row-source {
+        width: 20;
         color: $text-muted;
     }
 
-    PluginCard > .card-details {
+    PluginRow .row-counts {
+        width: 1fr;
         color: $text-muted;
-        margin-top: 1;
-    }
-
-    PluginCard > .card-status {
-        text-align: right;
     }
     """
 
@@ -84,11 +77,11 @@ class PluginCard(Widget, can_focus=True):
     enabled = reactive(True)
 
     class Toggled(Message):
-        """Posted when the plugin card is toggled."""
+        """Posted when the plugin row is toggled."""
 
-        def __init__(self, card: "PluginCard", new_state: bool) -> None:
+        def __init__(self, row: "PluginRow", new_state: bool) -> None:
             super().__init__()
-            self.card = card
+            self.row = row
             self.new_state = new_state
 
     def __init__(self, plugin: Plugin) -> None:
@@ -97,31 +90,17 @@ class PluginCard(Widget, can_focus=True):
         self.enabled = plugin.enabled
 
     def compose(self) -> ComposeResult:
-        # Status indicator
-        status = f"[{GREEN}]● ENABLED[/]" if self.enabled else f"[{RED}]○ DISABLED[/]"
-        yield Static(status, classes="card-status")
+        status = f"[{GREEN}]●[/]" if self.enabled else f"[{RED}]○[/]"
+        version = _truncate(f"v{self.plugin.version}", 10)
+        source = _truncate(_shorten_source(self.plugin.source), 18)
+        counts = _format_counts(self.plugin.skill_count, self.plugin.agent_count)
 
-        # Plugin name
-        yield Static(f"[bold]{self.plugin.name}[/]", classes="card-header")
-
-        # Version and source
-        source_short = _shorten_source(self.plugin.source)
-        yield Static(f"v{self.plugin.version}", classes="card-version")
-        yield Static(source_short, classes="card-source")
-
-        # Skill/agent counts
-        parts = []
-        if self.plugin.skill_count > 0:
-            parts.append(
-                f"{self.plugin.skill_count} skill{'s' if self.plugin.skill_count != 1 else ''}"
-            )
-        if self.plugin.agent_count > 0:
-            parts.append(
-                f"{self.plugin.agent_count} agent{'s' if self.plugin.agent_count != 1 else ''}"
-            )
-
-        if parts:
-            yield Static(", ".join(parts), classes="card-details")
+        with Horizontal():
+            yield Static(status, classes="row-status")
+            yield Static(self.plugin.name, classes="row-name")
+            yield Static(version, classes="row-version")
+            yield Static(source, classes="row-source")
+            yield Static(counts, classes="row-counts")
 
     def on_mount(self) -> None:
         """Set initial CSS class based on enabled state."""
@@ -156,15 +135,15 @@ class PluginCard(Widget, can_focus=True):
             enabled=self.enabled,
         )
         # Update status display
-        status_widget = self.query_one(".card-status", Static)
-        status = f"[{GREEN}]● ENABLED[/]" if self.enabled else f"[{RED}]○ DISABLED[/]"
+        status_widget = self.query_one(".row-status", Static)
+        status = f"[{GREEN}]●[/]" if self.enabled else f"[{RED}]○[/]"
         status_widget.update(status)
 
         self.post_message(self.Toggled(self, self.enabled))
 
 
 class PluginsTab(VerticalScroll):
-    """Plugins tab showing installed plugins as a card grid with enable/disable support."""
+    """Plugins tab showing installed plugins as compact table rows."""
 
     DEFAULT_CSS = """
     PluginsTab {
@@ -182,13 +161,6 @@ class PluginsTab(VerticalScroll):
     PluginsTab > #plugins-hint {
         color: $text-muted;
         margin-bottom: 1;
-    }
-
-    PluginsTab > #plugins-grid {
-        grid-size: 3;
-        grid-gutter: 1;
-        height: auto;
-        min-height: 10;
     }
 
     PluginsTab > #no-plugins {
@@ -209,9 +181,8 @@ class PluginsTab(VerticalScroll):
     def compose(self) -> ComposeResult:
         yield Static("INSTALLED PLUGINS", id="plugins-title")
         yield Static(
-            "[click/space/enter] toggle  [arrows] navigate  [r] refresh", id="plugins-hint"
+            "[space/enter] toggle  [arrows] navigate  [r] refresh", id="plugins-hint"
         )
-        yield Grid(id="plugins-grid")
 
     def on_mount(self) -> None:
         """Load plugins when mounted."""
@@ -221,25 +192,30 @@ class PluginsTab(VerticalScroll):
         """Refresh the plugins list."""
         enabled_plugins = load_enabled_plugins()
         self._plugins = find_installed_plugins(enabled_plugins=enabled_plugins)
-        grid = self.query_one("#plugins-grid", Grid)
 
-        # Clear and rebuild
-        grid.remove_children()
+        # Remove old rows (keep title and hint)
+        for row in self.query(PluginRow):
+            row.remove()
+
+        # Remove no-plugins message if present
+        try:
+            no_plugins = self.query_one("#no-plugins")
+            no_plugins.remove()
+        except Exception:
+            pass
 
         if not self._plugins:
-            # Show no plugins message
-            no_plugins = Static("No plugins installed", id="no-plugins")
-            grid.mount(no_plugins)
+            self.mount(Static("No plugins installed", id="no-plugins"))
             return
 
-        # Create cards for each plugin
+        # Mount rows for each plugin
         for plugin in self._plugins:
-            card = PluginCard(plugin)
-            grid.mount(card)
+            row = PluginRow(plugin)
+            self.mount(row)
 
-    def on_plugin_card_toggled(self, event: PluginCard.Toggled) -> None:
+    def on_plugin_row_toggled(self, event: PluginRow.Toggled) -> None:
         """Handle plugin toggle event."""
-        plugin = event.card.plugin
+        plugin = event.row.plugin
         plugin_id = get_plugin_id(plugin.name, plugin.source)
 
         # Save to settings
@@ -262,3 +238,20 @@ def _shorten_source(source: str) -> str:
     if source.endswith("-plugins"):
         return source[:-8]
     return source
+
+
+def _truncate(text: str, max_len: int) -> str:
+    """Truncate text with ellipsis if too long."""
+    if len(text) <= max_len:
+        return text
+    return text[: max_len - 1] + "…"
+
+
+def _format_counts(skills: int, agents: int) -> str:
+    """Format skill/agent counts for display."""
+    parts = []
+    if skills > 0:
+        parts.append(f"{skills}s")
+    if agents > 0:
+        parts.append(f"{agents}a")
+    return ", ".join(parts) if parts else ""
