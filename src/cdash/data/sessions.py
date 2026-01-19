@@ -1,8 +1,10 @@
 """Session data loading and active session detection."""
 
 import json
+import re
 import time
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 from typing import Iterator
 
@@ -10,6 +12,15 @@ from typing import Iterator
 _sessions_cache: list["Session"] | None = None
 _sessions_cache_time: float = 0
 _CACHE_TTL = 5.0  # seconds
+
+
+@dataclass
+class ToolCall:
+    """A single tool invocation with context."""
+
+    tool_name: str  # "Bash", "Read", "Edit", etc.
+    context: str  # file path, command, or pattern
+    timestamp: float  # Unix timestamp when it was called
 
 
 @dataclass
@@ -32,6 +43,12 @@ class Session:
     recent_tools: list[str] = field(default_factory=list)  # last 5 tools
     current_tool_input: str = ""  # file path or command
     full_prompt: str = ""  # full first user message
+    # H6e design fields
+    github_repo: str | None = None  # "owner/repo" from git remote
+    context_chars: int = 0  # Total characters in session JSONL
+    context_tokens_estimate: int = 0  # chars / 4 (rough estimate)
+    context_percentage: float = 0.0  # tokens / 200_000 * 100
+    recent_tool_calls: list[ToolCall] = field(default_factory=list)  # Last 3 with context
 
     @property
     def is_idle(self) -> bool:
@@ -58,6 +75,109 @@ def format_duration(started_at: float) -> str:
     if hours < 24:
         return f"{hours}h"
     return f"{hours // 24}d"
+
+
+def format_relative_time(timestamp: float) -> str:
+    """Format a timestamp as relative time (now, 30s, 2m, 1h).
+
+    Args:
+        timestamp: Unix timestamp
+
+    Returns:
+        Human-readable relative time string
+    """
+    age_secs = int(time.time() - timestamp)
+    if age_secs < 10:
+        return "now"
+    if age_secs < 60:
+        return f"{age_secs}s"
+    age_mins = age_secs // 60
+    if age_mins < 60:
+        return f"{age_mins}m"
+    return f"{age_mins // 60}h"
+
+
+# Cache for GitHub repo lookups
+_github_repo_cache: dict[str, str | None] = {}
+
+
+def get_github_repo(project_path: str) -> str | None:
+    """Extract owner/repo from git remote.
+
+    Args:
+        project_path: Path to the project directory
+
+    Returns:
+        "owner/repo" string or None if not a GitHub repo
+    """
+    if project_path in _github_repo_cache:
+        return _github_repo_cache[project_path]
+
+    result = None
+    git_config = Path(project_path) / ".git" / "config"
+
+    # Handle worktrees - .git might be a file pointing to the real git dir
+    git_path = Path(project_path) / ".git"
+    if git_path.is_file():
+        try:
+            content = git_path.read_text().strip()
+            if content.startswith("gitdir:"):
+                # Follow the gitdir pointer to find the actual config
+                gitdir = content.split(":", 1)[1].strip()
+                # Resolve relative path
+                if not gitdir.startswith("/"):
+                    gitdir = str(Path(project_path) / gitdir)
+                # Go up from worktree git dir to find main config
+                main_git = Path(gitdir).parent.parent
+                git_config = main_git / "config"
+        except (OSError, IndexError):
+            pass
+
+    if git_config.exists():
+        try:
+            config_text = git_config.read_text()
+
+            # SSH format: git@github.com:owner/repo.git
+            match = re.search(r"git@github\.com:([^/]+)/([^.\s]+)", config_text)
+            if match:
+                result = f"{match.group(1)}/{match.group(2)}"
+            else:
+                # HTTPS format: https://github.com/owner/repo.git
+                match = re.search(r"github\.com/([^/]+)/([^.\s]+)", config_text)
+                if match:
+                    result = f"{match.group(1)}/{match.group(2)}"
+        except OSError:
+            pass
+
+    _github_repo_cache[project_path] = result
+    return result
+
+
+def estimate_context_size(session_path: Path) -> tuple[int, int, float]:
+    """Estimate context usage from session JSONL size.
+
+    Args:
+        session_path: Path to the session JSONL file
+
+    Returns:
+        Tuple of (chars, estimated_tokens, percentage_of_200k)
+    """
+    if not session_path.exists():
+        return 0, 0, 0.0
+
+    try:
+        # Get total bytes (close enough to chars for estimation)
+        chars = session_path.stat().st_size
+
+        # Rough token estimate (4 chars per token average)
+        tokens = chars // 4
+
+        # Percentage of 200k context window
+        percentage = min(100.0, (tokens / 200_000) * 100)
+
+        return chars, tokens, percentage
+    except OSError:
+        return 0, 0, 0.0
 
 
 def get_claude_dir() -> Path:
@@ -145,6 +265,47 @@ def find_session_files(project_dir: Path) -> Iterator[Path]:
             yield file
 
 
+def _extract_tool_context(tool_name: str, tool_input: dict) -> str:
+    """Extract display context from tool input.
+
+    Args:
+        tool_name: Name of the tool
+        tool_input: Tool input dictionary
+
+    Returns:
+        Context string for display (file path, command, etc.)
+    """
+    if not isinstance(tool_input, dict):
+        return ""
+
+    # Get file_path for Read/Edit/Write
+    if "file_path" in tool_input:
+        return tool_input["file_path"]
+    # Get command for Bash
+    elif "command" in tool_input:
+        cmd = tool_input["command"]
+        # Truncate long commands
+        return cmd[:50] + "..." if len(cmd) > 50 else cmd
+    # Get pattern for Glob/Grep
+    elif "pattern" in tool_input:
+        pattern = tool_input["pattern"]
+        path = tool_input.get("path", "")
+        if path:
+            return f"{pattern} in {path}"
+        return pattern
+    # Get description for Task
+    elif "description" in tool_input:
+        return tool_input["description"]
+    # Get URL for WebFetch
+    elif "url" in tool_input:
+        return tool_input["url"]
+    # Get query for WebSearch
+    elif "query" in tool_input:
+        return tool_input["query"]
+
+    return ""
+
+
 def parse_session_file(session_file: Path, project_name: str) -> Session | None:
     """Parse a session JSONL file to extract session info.
 
@@ -170,6 +331,8 @@ def parse_session_file(session_file: Path, project_name: str) -> Session | None:
         message_count = 0
         tool_count = 0
         all_tools: list[str] = []  # collect all tools for recent_tools
+        all_tool_calls: list[ToolCall] = []  # collect tool calls with context
+        current_timestamp = 0.0  # track timestamp for tool calls
 
         with open(session_file, "r") as f:
             for line in f:
@@ -182,15 +345,16 @@ def parse_session_file(session_file: Path, project_name: str) -> Session | None:
                 if not cwd and "cwd" in entry:
                     cwd = entry.get("cwd", "")
 
-                # Get started_at from first timestamp
-                if started_at == 0.0 and "timestamp" in entry:
+                # Track timestamp for tool calls
+                if "timestamp" in entry:
                     timestamp_str = entry.get("timestamp", "")
                     if timestamp_str:
                         try:
-                            from datetime import datetime
-
                             dt = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
-                            started_at = dt.timestamp()
+                            current_timestamp = dt.timestamp()
+                            # Get started_at from first timestamp
+                            if started_at == 0.0:
+                                started_at = current_timestamp
                         except (ValueError, AttributeError):
                             pass
 
@@ -223,22 +387,17 @@ def parse_session_file(session_file: Path, project_name: str) -> Session | None:
                                     current_tool = tool_name
                                     # Extract tool input for context
                                     tool_input = item.get("input", {})
-                                    if isinstance(tool_input, dict):
-                                        # Get file_path for Read/Edit/Write
-                                        if "file_path" in tool_input:
-                                            current_tool_input = tool_input["file_path"]
-                                        # Get command for Bash
-                                        elif "command" in tool_input:
-                                            cmd = tool_input["command"]
-                                            # Truncate long commands
-                                            current_tool_input = (
-                                                cmd[:40] + "..." if len(cmd) > 40 else cmd
-                                            )
-                                        # Get pattern for Glob/Grep
-                                        elif "pattern" in tool_input:
-                                            current_tool_input = tool_input["pattern"]
-                                        else:
-                                            current_tool_input = ""
+                                    context = _extract_tool_context(tool_name, tool_input)
+                                    current_tool_input = context
+
+                                    # Record tool call with timestamp
+                                    all_tool_calls.append(
+                                        ToolCall(
+                                            tool_name=tool_name,
+                                            context=context,
+                                            timestamp=current_timestamp or time.time(),
+                                        )
+                                    )
 
                 # Look for git branch in summary messages
                 if entry.get("type") == "summary":
@@ -258,6 +417,15 @@ def parse_session_file(session_file: Path, project_name: str) -> Session | None:
         # Get last 5 tools for recent_tools display
         recent_tools = all_tools[-5:] if all_tools else []
 
+        # Get last 3 tool calls with context for H6e display
+        recent_tool_calls = all_tool_calls[-3:] if all_tool_calls else []
+
+        # Get GitHub repo from project path
+        github_repo = get_github_repo(project_name)
+
+        # Estimate context size
+        context_chars, context_tokens, context_percentage = estimate_context_size(session_file)
+
         return Session(
             session_id=session_id,
             project_path=str(session_file.parent),
@@ -274,6 +442,11 @@ def parse_session_file(session_file: Path, project_name: str) -> Session | None:
             recent_tools=recent_tools,
             current_tool_input=current_tool_input if is_active else "",
             full_prompt=full_prompt,
+            github_repo=github_repo,
+            context_chars=context_chars,
+            context_tokens_estimate=context_tokens,
+            context_percentage=context_percentage,
+            recent_tool_calls=recent_tool_calls,
         )
     except (OSError, PermissionError):
         return None
