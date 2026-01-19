@@ -8,7 +8,13 @@ from textual.widget import Widget
 from textual.widgets import Static
 
 from cdash.components.indicators import RefreshIndicator
-from cdash.data.sessions import Session, format_duration, format_relative_time, load_all_sessions
+from cdash.data.sessions import (
+    Session,
+    format_duration,
+    format_file_size,
+    format_relative_time,
+    load_all_sessions,
+)
 from cdash.theme import AMBER, CORAL, GREEN, RED, TEXT_MUTED
 
 
@@ -174,12 +180,12 @@ class SessionCardFrame(Vertical):
         title = s.github_repo or format_project_display(s.project_name)
         lines.append(f"{status} [bold]{title}[/]  {badge}")
 
-        # Line 2: branch + duration + context bar
+        # Line 2: branch + duration + file size
         branch = s.git_branch[:40] if s.git_branch else ""
         dur = format_duration(s.started_at)
         duration = f"{dur}" if dur else ""
-        context_bar = self._render_context_bar(s.context_percentage)
-        lines.append(f"  [{TEXT_MUTED}]{branch}[/]  {duration}  {context_bar}")
+        file_size = format_file_size(s.context_chars)
+        lines.append(f"  [{TEXT_MUTED}]{branch}[/]  {duration}  💾 {file_size}")
 
         # Line 3: prompt preview
         if s.full_prompt:
@@ -336,12 +342,12 @@ class SessionCard(Static):
         title = s.github_repo or format_project_display(s.project_name)
         lines.append(f"{status} [bold]{title}[/]  {badge}")
 
-        # Line 2: branch + duration + context bar
+        # Line 2: branch + duration + file size
         branch = s.git_branch[:40] if s.git_branch else ""
         dur = format_duration(s.started_at)
         duration = f"{dur}" if dur else ""
-        context_bar = self._render_context_bar(s.context_percentage)
-        lines.append(f"  [{TEXT_MUTED}]{branch}[/]  {duration}  {context_bar}")
+        file_size = format_file_size(s.context_chars)
+        lines.append(f"  [{TEXT_MUTED}]{branch}[/]  {duration}  💾 {file_size}")
 
         # Line 3: prompt preview
         if s.full_prompt:
