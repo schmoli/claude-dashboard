@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from cdash.app import ClaudeDashApp
-from cdash.components.plugins import PluginCard, PluginsTab
+from cdash.components.plugins import PluginRow, PluginsTab
 from cdash.data.plugins import Plugin, find_installed_plugins, _is_semver, _parse_semver
 
 
@@ -259,11 +259,11 @@ class TestPluginsTab:
         assert tab is not None
 
 
-class TestPluginCard:
-    """Tests for PluginCard widget."""
+class TestPluginRow:
+    """Tests for PluginRow widget."""
 
-    def test_card_creation(self, tmp_path: Path):
-        """Card can be created from Plugin."""
+    def test_row_creation(self, tmp_path: Path):
+        """Row can be created from Plugin."""
         plugin = Plugin(
             name="test-plugin",
             version="1.0.0",
@@ -275,12 +275,12 @@ class TestPluginCard:
             path=tmp_path,
             enabled=True,
         )
-        card = PluginCard(plugin)
-        assert card.plugin.name == "test-plugin"
-        assert card.enabled is True
+        row = PluginRow(plugin)
+        assert row.plugin.name == "test-plugin"
+        assert row.enabled is True
 
-    def test_card_enabled_state(self, tmp_path: Path):
-        """Card reflects plugin enabled state."""
+    def test_row_enabled_state(self, tmp_path: Path):
+        """Row reflects plugin enabled state."""
         # Enabled plugin
         enabled_plugin = Plugin(
             name="enabled",
@@ -293,8 +293,8 @@ class TestPluginCard:
             path=tmp_path,
             enabled=True,
         )
-        card = PluginCard(enabled_plugin)
-        assert card.enabled is True
+        row = PluginRow(enabled_plugin)
+        assert row.enabled is True
 
         # Disabled plugin
         disabled_plugin = Plugin(
@@ -308,11 +308,11 @@ class TestPluginCard:
             path=tmp_path,
             enabled=False,
         )
-        card = PluginCard(disabled_plugin)
-        assert card.enabled is False
+        row = PluginRow(disabled_plugin)
+        assert row.enabled is False
 
-    def test_card_initial_disabled_state(self, tmp_path: Path):
-        """Card starts with disabled state from plugin."""
+    def test_row_initial_disabled_state(self, tmp_path: Path):
+        """Row starts with disabled state from plugin."""
         plugin = Plugin(
             name="test",
             version="1.0.0",
@@ -324,6 +324,6 @@ class TestPluginCard:
             path=tmp_path,
             enabled=False,
         )
-        card = PluginCard(plugin)
-        assert card.enabled is False
-        assert card.plugin.enabled is False
+        row = PluginRow(plugin)
+        assert row.enabled is False
+        assert row.plugin.enabled is False
