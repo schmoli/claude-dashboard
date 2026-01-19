@@ -521,3 +521,127 @@ class TestFormatProjectDisplay:
 
         result = format_project_display("/path/to/my-cool-project")
         assert result == "my-cool-project"
+
+
+class TestGroupSessionsByProject:
+    """Tests for group_sessions_by_project helper."""
+
+    def test_groups_by_github_repo(self):
+        """Sessions with github_repo are grouped by it."""
+        from cdash.data.sessions import group_sessions_by_project
+
+        now = time.time()
+        sessions = [
+            Session(
+                session_id="1",
+                project_path="/a",
+                project_name="/a",
+                cwd="/a",
+                last_modified=now,
+                prompt_preview="",
+                current_tool=None,
+                is_active=True,
+                github_repo="owner/repo",
+            ),
+            Session(
+                session_id="2",
+                project_path="/b",
+                project_name="/b",
+                cwd="/b",
+                last_modified=now - 10,
+                prompt_preview="",
+                current_tool=None,
+                is_active=True,
+                github_repo="owner/repo",
+            ),
+        ]
+
+        grouped = group_sessions_by_project(sessions)
+        assert "owner/repo" in grouped
+        assert len(grouped["owner/repo"]) == 2
+
+    def test_groups_by_project_name_if_no_github(self):
+        """Sessions without github_repo are grouped by project_name."""
+        from cdash.data.sessions import group_sessions_by_project
+
+        now = time.time()
+        sessions = [
+            Session(
+                session_id="1",
+                project_path="/a",
+                project_name="/path/to/project",
+                cwd="/a",
+                last_modified=now,
+                prompt_preview="",
+                current_tool=None,
+                is_active=True,
+            ),
+        ]
+
+        grouped = group_sessions_by_project(sessions)
+        assert "/path/to/project" in grouped
+
+    def test_sorts_active_before_idle(self):
+        """Within a group, active sessions come before idle."""
+        from cdash.data.sessions import group_sessions_by_project
+
+        now = time.time()
+        idle_session = Session(
+            session_id="idle",
+            project_path="/a",
+            project_name="/a",
+            cwd="/a",
+            last_modified=now - 120,  # 2 min ago = idle
+            prompt_preview="",
+            current_tool=None,
+            is_active=False,
+        )
+        active_session = Session(
+            session_id="active",
+            project_path="/a",
+            project_name="/a",
+            cwd="/a",
+            last_modified=now,
+            prompt_preview="",
+            current_tool=None,
+            is_active=True,
+        )
+        # Pass idle first to verify sorting
+        sessions = [idle_session, active_session]
+
+        grouped = group_sessions_by_project(sessions)
+        assert grouped["/a"][0].session_id == "active"
+        assert grouped["/a"][1].session_id == "idle"
+
+    def test_sorts_groups_by_most_recent_activity(self):
+        """Groups are ordered by their most recent session."""
+        from cdash.data.sessions import group_sessions_by_project
+
+        now = time.time()
+        old_session = Session(
+            session_id="old",
+            project_path="/old",
+            project_name="/old",
+            cwd="/old",
+            last_modified=now - 300,
+            prompt_preview="",
+            current_tool=None,
+            is_active=True,
+        )
+        new_session = Session(
+            session_id="new",
+            project_path="/new",
+            project_name="/new",
+            cwd="/new",
+            last_modified=now,
+            prompt_preview="",
+            current_tool=None,
+            is_active=True,
+        )
+        # Pass old first
+        sessions = [old_session, new_session]
+
+        grouped = group_sessions_by_project(sessions)
+        keys = list(grouped.keys())
+        assert keys[0] == "/new"
+        assert keys[1] == "/old"
